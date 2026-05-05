@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useTransition, useEffect } from "react"
+import { useState, useTransition, useEffect, useRef } from "react"
 import Link from "next/link"
 import {
   ArrowLeft, MapPin, Phone, Star, UtensilsCrossed, Wine, Coffee,
@@ -674,6 +674,42 @@ function DeliveryCartSheet({ cart, brandColor, currency, total, venueId, orderMo
   const [success, setSuccess] = useState(false)
   const [isPending, startTransition] = useTransition()
 
+  const [suggestions, setSuggestions] = useState<{ display_name: string; address: any }[]>([])
+  const [suggestionsOpen, setSuggestionsOpen] = useState(false)
+  const [loadingSugg, setLoadingSugg] = useState(false)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  function handleAddressChange(val: string) {
+    setAddress(val)
+    setSuggestionsOpen(false)
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    if (val.trim().length < 3) { setSuggestions([]); return }
+    debounceRef.current = setTimeout(async () => {
+      setLoadingSugg(true)
+      try {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(val)}&format=json&limit=6&countrycodes=sk&addressdetails=1`,
+          { headers: { "Accept-Language": "sk" } }
+        )
+        const data = await res.json()
+        setSuggestions(data ?? [])
+        setSuggestionsOpen((data ?? []).length > 0)
+      } catch { /* ignore */ }
+      finally { setLoadingSugg(false) }
+    }, 450)
+  }
+
+  function pickSuggestion(s: { display_name: string; address: any }) {
+    const a = s.address ?? {}
+    const road = [a.road, a.house_number].filter(Boolean).join(" ")
+    const city = a.city ?? a.town ?? a.village ?? a.municipality ?? ""
+    const postcode = a.postcode ?? ""
+    const formatted = [road, [postcode, city].filter(Boolean).join(" ")].filter(Boolean).join(", ")
+    setAddress(formatted || s.display_name.replace(/, Slovensko$/, "").replace(/, Slovakia$/, ""))
+    setSuggestions([])
+    setSuggestionsOpen(false)
+  }
+
   function selectMode(mode: "delivery" | "takeaway") {
     setOrderMode(mode)
     onOrderModeChange(mode)
@@ -778,9 +814,43 @@ function DeliveryCartSheet({ cart, brandColor, currency, total, venueId, orderMo
               className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2"
               style={{ "--tw-ring-color": brandColor } as React.CSSProperties} />
             {orderMode === "delivery" && (
-              <input value={address} onChange={e => setAddress(e.target.value)} placeholder="Adresa doručenia *"
-                className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2"
-                style={{ "--tw-ring-color": brandColor } as React.CSSProperties} />
+              <div className="relative">
+                <input
+                  value={address}
+                  onChange={e => handleAddressChange(e.target.value)}
+                  onBlur={() => setTimeout(() => setSuggestionsOpen(false), 150)}
+                  placeholder="Adresa doručenia *"
+                  autoComplete="off"
+                  className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 focus:outline-none focus:ring-2"
+                  style={{ "--tw-ring-color": brandColor } as React.CSSProperties}
+                />
+                {loadingSugg && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    <div className="w-4 h-4 border-2 border-gray-300 border-t-transparent rounded-full animate-spin" />
+                  </div>
+                )}
+                {suggestionsOpen && suggestions.length > 0 && (
+                  <div className="absolute top-full left-0 right-0 z-50 bg-white border border-gray-200 rounded-xl shadow-lg mt-1 overflow-hidden max-h-52 overflow-y-auto">
+                    {suggestions.map((s, i) => {
+                      const a = s.address ?? {}
+                      const road = [a.road, a.house_number].filter(Boolean).join(" ")
+                      const city = a.city ?? a.town ?? a.village ?? a.municipality ?? ""
+                      const postcode = a.postcode ?? ""
+                      const line1 = road || s.display_name.split(",")[0]
+                      const line2 = [postcode, city].filter(Boolean).join(" ")
+                      return (
+                        <button key={i} type="button"
+                          onMouseDown={() => pickSuggestion(s)}
+                          className="w-full text-left px-3 py-2.5 hover:bg-gray-50 border-b border-gray-100 last:border-0"
+                        >
+                          <p className="text-sm text-gray-900 font-medium">{line1}</p>
+                          {line2 && <p className="text-xs text-gray-400">{line2}</p>}
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
             )}
             <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Poznámka (voliteľné)…" rows={2}
               className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 resize-none focus:outline-none focus:ring-2"
