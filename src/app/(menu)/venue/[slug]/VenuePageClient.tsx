@@ -5,7 +5,7 @@ import Link from "next/link"
 import {
   ArrowLeft, MapPin, Phone, Star, UtensilsCrossed, Wine, Coffee,
   ChevronDown, AlertTriangle, Tag, Plus, Minus, X, Check,
-  ShoppingCart, ChevronRight, Truck, Package, QrCode, Loader2, CheckCircle2,
+  ShoppingCart, ChevronRight, Truck, Package, Loader2, CheckCircle2,
 } from "lucide-react"
 import { formatCurrency } from "@/lib/utils"
 import { getCategoryEmoji } from "@/lib/category-emoji"
@@ -141,10 +141,10 @@ export default function VenuePageClient({ venue, categories, items, modifierGrou
           )}
 
           {/* Order mode selector */}
-          <div className="mt-4 grid grid-cols-3 gap-2">
+          <div className="mt-4 flex gap-2">
             <button
               onClick={() => setOrderMode("delivery")}
-              className="flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 text-xs font-semibold transition-colors"
+              className="flex-1 flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 text-xs font-semibold transition-colors"
               style={orderMode === "delivery" ? { borderColor: brand, color: brand, backgroundColor: `${brand}10` } : { borderColor: "#e5e7eb", color: "#6b7280" }}
             >
               <Truck size={18} />
@@ -152,16 +152,18 @@ export default function VenuePageClient({ venue, categories, items, modifierGrou
             </button>
             <button
               onClick={() => setOrderMode("takeaway")}
-              className="flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 text-xs font-semibold transition-colors"
+              className="flex-1 flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 text-xs font-semibold transition-colors"
               style={orderMode === "takeaway" ? { borderColor: brand, color: brand, backgroundColor: `${brand}10` } : { borderColor: "#e5e7eb", color: "#6b7280" }}
             >
               <Package size={18} />
               Takeaway
             </button>
-            <div className="flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 border-gray-200 text-xs font-semibold text-gray-400">
-              <QrCode size={18} />
-              Na stole
-            </div>
+            {avgRating !== null && reviewCount > 0 && (
+              <div className="flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 border-gray-100 text-xs font-semibold text-amber-500 bg-amber-50/50 min-w-[72px]">
+                <Star size={18} fill="currentColor" />
+                <span>{avgRating.toFixed(1)} <span className="text-gray-400 font-normal">({reviewCount})</span></span>
+              </div>
+            )}
           </div>
           {orderMode && (
             <p className="text-xs text-gray-500 mt-2 text-center">
@@ -381,14 +383,21 @@ export default function VenuePageClient({ venue, categories, items, modifierGrou
             </span>
           </button>
 
-          {/* Right: QR / scan hint */}
-          <button
-            onClick={() => window.location.href = "/restaurants"}
-            className="w-14 rounded-2xl flex flex-col items-center justify-center gap-1 bg-black/20 hover:bg-black/30 active:bg-black/35 transition-colors shrink-0"
-          >
-            <QrCode size={20} className="text-white/60" />
-            <span className="text-[9px] text-white/60 font-medium leading-none">Na stole</span>
-          </button>
+          {/* Right: rating */}
+          <div className="w-14 rounded-2xl flex flex-col items-center justify-center gap-1 bg-black/20 shrink-0">
+            {avgRating !== null && reviewCount > 0 ? (
+              <>
+                <Star size={18} fill="white" className="text-white" />
+                <span className="text-[11px] text-white font-bold leading-none">{avgRating.toFixed(1)}</span>
+                <span className="text-[8px] text-white/60 leading-none">{reviewCount}×</span>
+              </>
+            ) : (
+              <>
+                <Star size={18} className="text-white/30" />
+                <span className="text-[9px] text-white/40 font-medium leading-none">—</span>
+              </>
+            )}
+          </div>
 
         </div>
       </div>

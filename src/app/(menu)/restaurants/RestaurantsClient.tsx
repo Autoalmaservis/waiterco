@@ -7,7 +7,7 @@ import Fuse from "fuse.js"
 import {
   Search, MapPin, Coffee, UtensilsCrossed, Wine, User, ChevronRight,
   QrCode, X, Camera, Smartphone, ScanLine, ArrowLeft, Bike,
-  Map as MapIcon, List, Star, Utensils,
+  Map as MapIcon, List, Star, Utensils, Navigation, Package,
 } from "lucide-react"
 import type { VenueCard } from "./page"
 
@@ -33,6 +33,8 @@ export default function RestaurantsClient({
   const [search, setSearch] = useState("")
   const [scannerOpen, setScannerOpen] = useState(false)
   const [mapMode, setMapMode] = useState(false)
+  const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null)
+  const [locationLoading, setLocationLoading] = useState(false)
   const searchInputRef = useRef<HTMLInputElement>(null)
 
   // Fuse instance for venues
@@ -117,7 +119,15 @@ export default function RestaurantsClient({
   function openSearch(mode: HomeView) {
     setView(mode)
     setMapMode(false)
-    setTimeout(() => searchInputRef.current?.focus(), 80)
+    // Request location for nearby sorting (don't auto-focus keyboard)
+    if (!userCoords) {
+      setLocationLoading(true)
+      navigator.geolocation?.getCurrentPosition(
+        pos => { setUserCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude }); setLocationLoading(false) },
+        () => setLocationLoading(false),
+        { timeout: 5000 }
+      )
+    }
   }
 
   function closeSearch() {
@@ -131,9 +141,12 @@ export default function RestaurantsClient({
     const isDelivery = view === "delivery"
     const accent = isDelivery ? "#2BB58C" : "#2563EB"
     const focusRing = isDelivery ? "focus:ring-[#2BB58C]" : "focus:ring-[#2563EB]"
-    const label = isDelivery ? "Donáška jedla" : "Vyhľadať reštauráciu"
+    const label = isDelivery ? "Donáška / Takeaway" : "Reštaurácie v okolí"
     const Icon = isDelivery ? Bike : Search
     const hasSearch = search.trim().length > 0
+    const mapsUrl = userCoords
+      ? `https://www.google.com/maps/search/restaurants/@${userCoords.lat},${userCoords.lng},15z`
+      : `https://www.google.com/maps/search/restaurants`
 
     return (
       <div className="min-h-screen bg-gray-50">
@@ -151,17 +164,28 @@ export default function RestaurantsClient({
               <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
                 <Icon size={18} className="text-white" />
               </div>
-              <h1 className="text-white font-bold text-xl flex-1">{label}</h1>
-              {/* Map / list toggle */}
-              <button
-                onClick={() => setMapMode(m => !m)}
+              <div className="flex-1 min-w-0">
+                <h1 className="text-white font-bold text-xl leading-tight">{label}</h1>
+                <p className="text-white/60 text-xs mt-0.5 flex items-center gap-1">
+                  {locationLoading
+                    ? <><span className="inline-block w-2 h-2 rounded-full bg-white/40 animate-pulse" />Hľadám polohu…</>
+                    : userCoords
+                      ? <><Navigation size={10} className="shrink-0" />Zoradené podľa hodnotenia</>
+                      : "Zoradené podľa hodnotenia"
+                  }
+                </p>
+              </div>
+              {/* Map button */}
+              <a
+                href={mapsUrl} target="_blank" rel="noopener noreferrer"
                 className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors shrink-0 ${mapMode ? "bg-white" : "bg-white/20"}`}
+                onClick={e => { e.preventDefault(); if (mapMode) { setMapMode(false) } else { setMapMode(true) } }}
               >
                 {mapMode
                   ? <List size={18} className="text-gray-700" />
                   : <MapIcon size={18} className="text-white" />
                 }
-              </button>
+              </a>
             </div>
             <div className="relative">
               <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -185,11 +209,21 @@ export default function RestaurantsClient({
 
         {/* Results */}
         <div className="max-w-lg mx-auto px-4 py-4">
-          {hasSearch && (
-            <p className="text-xs text-gray-400 px-1 mb-3">
-              {results.length === 0 ? "Žiadne výsledky" : `${results.length} reštaurácií`}
+          {/* Count / context label */}
+          <div className="flex items-center justify-between mb-3 px-1">
+            <p className="text-xs text-gray-400">
+              {hasSearch
+                ? results.length === 0 ? "Žiadne výsledky" : `${results.length} reštaurácií`
+                : `${results.length} reštaurácií v okolí`
+              }
             </p>
-          )}
+            {mapMode && userCoords && (
+              <a href={mapsUrl} target="_blank" rel="noopener noreferrer"
+                className="text-xs font-medium flex items-center gap-1" style={{ color: accent }}>
+                <MapIcon size={12} />Otvoriť Google Maps
+              </a>
+            )}
+          </div>
 
           {results.length === 0 && hasSearch ? (
             <div className="text-center py-16">
@@ -279,11 +313,16 @@ export default function RestaurantsClient({
             <div className="absolute inset-0 opacity-15"
               style={{ background: "radial-gradient(circle at 50% 30%, #fff 0%, transparent 70%)" }} />
             <div className="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center relative z-10">
-              <Bike size={30} className="text-white" />
+              {isLoggedIn
+                ? <div className="flex items-center gap-1"><Bike size={22} className="text-white" /><Package size={22} className="text-white" /></div>
+                : <Bike size={30} className="text-white" />
+              }
             </div>
             <div className="text-center relative z-10">
-              <p className="text-white font-bold text-base leading-tight">Donáška</p>
-              <p className="text-white/70 text-xs mt-0.5">jedla domov</p>
+              <p className="text-white font-bold text-base leading-tight">
+                {isLoggedIn ? "Donáška · Takeaway" : "Donáška"}
+              </p>
+              <p className="text-white/70 text-xs mt-0.5">{isLoggedIn ? "objednaj online" : "jedla domov"}</p>
             </div>
           </button>
 
@@ -320,6 +359,7 @@ function QRScannerModal({ onClose }: { onClose: () => void }) {
   const rafRef = useRef<number | null>(null)
   const [mode, setMode] = useState<"loading" | "scanning" | "ios" | "error">("loading")
   const [errorMsg, setErrorMsg] = useState("")
+  const [navigating, setNavigating] = useState(false)
 
   const stopCamera = useCallback(() => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current)
@@ -377,12 +417,17 @@ function QRScannerModal({ onClose }: { onClose: () => void }) {
         const barcodes = await detector.detect(video)
         if (barcodes.length > 0) {
           const raw = barcodes[0].rawValue as string
-          stopCamera(); onClose()
-          try {
-            const url = new URL(raw)
-            if (url.pathname.startsWith("/menu/")) router.push(url.pathname)
-            else window.location.href = raw
-          } catch { window.location.href = raw }
+          stopCamera()
+          setNavigating(true)
+          // Brief pause to show loading animation before navigation
+          setTimeout(() => {
+            onClose()
+            try {
+              const url = new URL(raw)
+              if (url.pathname.startsWith("/menu/")) router.push(url.pathname)
+              else window.location.href = raw
+            } catch { window.location.href = raw }
+          }, 800)
           return
         }
       } catch { /* ignore frame errors */ }
@@ -390,6 +435,25 @@ function QRScannerModal({ onClose }: { onClose: () => void }) {
     }
     rafRef.current = requestAnimationFrame(scan)
   }, [mode, router, stopCamera, onClose])
+
+  if (navigating) {
+    return (
+      <div className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-5" style={{ backgroundColor: "#E85B1A" }}>
+        <div className="relative">
+          <div className="w-24 h-24 rounded-3xl bg-white/20 flex items-center justify-center">
+            <span className="text-5xl animate-[bounce_0.8s_ease-in-out_infinite]">🍽️</span>
+          </div>
+          <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-white flex items-center justify-center">
+            <div className="w-4 h-4 rounded-full border-2 border-[#E85B1A] border-t-transparent animate-spin" />
+          </div>
+        </div>
+        <div className="text-center">
+          <p className="text-white font-bold text-xl">Načítavam menu…</p>
+          <p className="text-white/70 text-sm mt-1">Chvíľočku strpenia</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="fixed inset-0 z-50 bg-black flex flex-col">
