@@ -207,6 +207,7 @@ export default function WaiterClient({
 
   const pendingCallCount = initialCalls.filter(c => c.status === "pending").length
   const readyOrderCount = initialOrders.filter(o => o.status === "ready").length
+  const pendingOrderCount = initialOrders.filter(o => o.status === "pending").length
 
   const prevReadyCountRef = useRef(readyOrderCount)
   useEffect(() => {
@@ -258,9 +259,9 @@ export default function WaiterClient({
                   {pendingCallCount}
                 </span>
               )}
-              {key === "orders" && readyOrderCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-green-500 text-white text-[10px] flex items-center justify-center font-bold animate-pulse">
-                  {readyOrderCount}
+              {key === "orders" && (pendingOrderCount > 0 || readyOrderCount > 0) && (
+                <span className={`absolute -top-1 -right-1 w-4 h-4 rounded-full text-white text-[10px] flex items-center justify-center font-bold animate-pulse ${pendingOrderCount > 0 ? "bg-red-500" : "bg-green-500"}`}>
+                  {pendingOrderCount > 0 ? pendingOrderCount : readyOrderCount}
                 </span>
               )}
             </button>
