@@ -21,19 +21,27 @@ export default async function OrdersPage() {
     )
   }
 
-  const todayStart = new Date()
-  todayStart.setHours(0, 0, 0, 0)
+  const monthAgo = new Date()
+  monthAgo.setDate(monthAgo.getDate() - 30)
 
-  const { data: orders } = await supabase
-    .from("orders")
-    .select("*")
-    .in("venue_id", venueIds)
-    .gte("created_at", todayStart.toISOString())
-    .order("created_at", { ascending: false })
+  const [ordersResult, tablesResult] = await Promise.all([
+    supabase
+      .from("orders")
+      .select("*")
+      .in("venue_id", venueIds)
+      .gte("created_at", monthAgo.toISOString())
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("tables")
+      .select("id, name")
+      .in("venue_id", venueIds),
+  ])
+
+  const tableMap = Object.fromEntries((tablesResult.data ?? []).map((t) => [t.id, t.name]))
 
   return (
     <div className="p-8">
-      <OrdersClient orders={orders ?? []} venues={ctx.venues} />
+      <OrdersClient orders={ordersResult.data ?? []} venues={ctx.venues} tableMap={tableMap} />
     </div>
   )
 }
