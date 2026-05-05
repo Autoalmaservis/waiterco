@@ -1,0 +1,29 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(c:\\Users\\maros\\Desktop\\ewaiter\\**)",
+      "Read(//c/Users/maros/.next/dev/logs/**)",
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\maros\\\\Desktop\\\\ewaiter\\\\src\" -Recurse -Filter \"middleware*\")",
+      "PowerShell(taskkill /PID 14604 /F 2>&1)",
+      "Bash(npm run *)",
+      "PowerShell(cd \"C:\\\\Users\\\\maros\\\\Desktop\\\\ewaiter\"; \\(Get-Content src\\\\types\\\\database.ts\\) -replace 'Insert: Omit<', 'Insert: Insertable<Omit<' | Set-Content src\\\\types\\\\database.ts -Encoding utf8)",
+      "Bash(Get-ChildItem -Recurse -Name \"middleware*\")",
+      "Bash(npx tsc *)",
+      "Bash(Remove-Item \"c:\\\\Users\\\\maros\\\\Desktop\\\\ewaiter\\\\src\\\\app\\\\\\(admin\\)\\\\admin\\\\tables\\\\TablesClient.tsx\")",
+      "WebFetch(domain:www.restauracia-drag.sk)",
+      "Bash(python -c ' *)",
+      "Bash(pip install *)",
+      "WebFetch(domain:www.steak-house.sk)",
+      "Bash(node -e \"const p = require\\('./package.json'\\); console.log\\(Object.keys\\(p.dependencies\\).join\\('\\\\n'\\)\\)\")",
+      "Bash(dir \"c:\\\\Users\\\\maros\\\\Desktop\\\\ewaiter\\\\src\\\\app\\\\\\(admin\\)\\\\admin\" /b)",
+      "Bash(npx next *)",
+      "Bash(curl -s -o nul -w \"%{http_code}\" http://localhost:3000)",
+      "Bash(curl -s -o nul -w \"%{http_code}\" http://localhost:3000/login)",
+      "Bash(del \"c:\\\\Users\\\\maros\\\\Desktop\\\\ewaiter\\\\src\\\\middleware.ts\")",
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\maros\\\\Desktop\\\\ewaiter\\\\src\\\\app\\\\\\(admin\\)\\\\\" -Recurse -Force | Select-Object FullName, PSIsContainer | Sort-Object FullName)",
+      "Bash(Select-String -Pattern \"WaiterClient|staff/page\")",
+      "Bash(grep -E \"\\(WaiterClient|staff/page|staff\\\\\\\\\\\\\\\\page\\)\")",
+      "Bash(Get-ChildItem -Recurse -Path \"c:\\\\Users\\\\maros\\\\Desktop\\\\ewaiter\\\\src\\\\app\\\\\\(admin\\)\\\\\" -File | Select-Object FullName | Sort-Object FullName)"
+    ]
+  }
+}

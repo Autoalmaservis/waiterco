@@ -1,0 +1,26 @@
+{
+  "name": "eWaiter – Digitálne menu",
+  "short_name": "eWaiter",
+  "description": "Objednajte si jedlo a sledujte stav objednávky priamo na vašom stole.",
+  "start_url": "/restaurants",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#E85B1A",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["food", "shopping"],
+  "lang": "sk"
+}
