@@ -5,7 +5,7 @@ import {
   Bell, ShoppingCart, X, Plus, Minus, ChevronRight, Star,
   AlertTriangle, Tag, Coffee, CheckCircle2, Check, ChevronDown,
   ArrowLeft, Receipt, Share2, Globe, Clock, Loader2, User, MessageSquare,
-  UtensilsCrossed,
+  UtensilsCrossed, Euro, Banknote, CreditCard,
 } from "lucide-react"
 import { formatCurrency } from "@/lib/utils"
 import { getCategoryEmoji } from "@/lib/category-emoji"
@@ -65,6 +65,8 @@ const T = {
     statusReady: "Pripravené", statusDelivered: "Doručené", statusCancelled: "Zrušené",
     shareOrder: "Zdieľať objednávku", copied: "Skopírované!",
     ratePrompt: "Bola vám objednávka doručená? Ohodnoťte nás.",
+    paymentMethod: "Spôsob platby", cash: "Hotovosť", card: "Karta",
+    confirmPayment: "Potvrdiť platbu", payment: "Platba",
   },
   en: {
     menu: "Menu", myOrder: "My Order", waiter: "Waiter", waiterComing: "Coming!",
@@ -86,6 +88,8 @@ const T = {
     statusReady: "Ready", statusDelivered: "Delivered", statusCancelled: "Cancelled",
     shareOrder: "Share order", copied: "Copied!",
     ratePrompt: "Did you receive your order? Please rate us.",
+    paymentMethod: "Payment method", cash: "Cash", card: "Card",
+    confirmPayment: "Confirm payment", payment: "Payment",
   },
 }
 
@@ -145,6 +149,9 @@ export default function MenuPageClient({
   const [waiterSheetMsgOpen, setWaiterSheetMsgOpen] = useState(false)
   const [waiterMessage, setWaiterMessage] = useState("")
   const [billState, setBillState] = useState<"idle" | "pending" | "done">("idle")
+  const [paymentSheetOpen, setPaymentSheetOpen] = useState(false)
+  const [paymentSplitPeople, setPaymentSplitPeople] = useState(1)
+  const [paymentMethod, setPaymentMethod] = useState<"cash" | "card">("card")
   const cartBtnRef = useRef<HTMLButtonElement>(null)
   const [ratingDone, setRatingDone] = useState(false)
   const prevSessionStatus = useRef(initialSessionStatus)
@@ -340,6 +347,18 @@ export default function MenuPageClient({
     await requestBill(table.id, venue.id, sessionId)
     setBillState("done")
     setWaiterSheetOpen(false)
+    if (!ratingDone) setTimeout(() => setRatingOpen(true), 700)
+  }
+
+  async function handlePaymentRequest() {
+    setBillState("pending")
+    const methodLabel = paymentMethod === "cash" ? t.cash : t.card
+    const note = paymentSplitPeople > 1
+      ? `${methodLabel} · ${paymentSplitPeople} ${t.people}`
+      : methodLabel
+    await requestBill(table.id, venue.id, sessionId, note)
+    setBillState("done")
+    setPaymentSheetOpen(false)
     if (!ratingDone) setTimeout(() => setRatingOpen(true), 700)
   }
 
@@ -582,15 +601,15 @@ export default function MenuPageClient({
         />
       )}
 
-      {/* Fixed bottom bar — 3 sections: order progress | cart | call waiter */}
+      {/* Fixed bottom bar — 4 sections: order status | € payment | cart | call waiter */}
       <div className="fixed bottom-0 left-0 right-0 z-40 px-3 pt-3 pb-6" style={{ backgroundColor: brandColor }}>
         <div className="max-w-md mx-auto flex items-stretch gap-2">
 
-          {/* Left: order progress / back-to-menu */}
+          {/* Slot 1: order progress / back-to-menu */}
           {view === "orders" ? (
             <button
               onClick={() => setView("categories")}
-              className="w-14 rounded-2xl flex flex-col items-center justify-center gap-1 bg-black/20 hover:bg-black/30 active:bg-black/35 transition-colors shrink-0"
+              className="w-12 rounded-2xl flex flex-col items-center justify-center gap-1 bg-black/20 hover:bg-black/30 active:bg-black/35 transition-colors shrink-0"
             >
               <UtensilsCrossed size={20} className="text-white" />
               <span className="text-[9px] text-white/80 font-medium leading-none">Menu</span>
@@ -602,7 +621,7 @@ export default function MenuPageClient({
             return (
               <button
                 onClick={() => sessionId && setView("orders")}
-                className="w-14 rounded-2xl flex flex-col items-center justify-center gap-1 bg-black/20 hover:bg-black/30 active:bg-black/35 transition-colors shrink-0"
+                className="w-12 rounded-2xl flex flex-col items-center justify-center gap-1 bg-black/20 hover:bg-black/30 active:bg-black/35 transition-colors shrink-0"
               >
                 {!sessionId || trackingOrders.length === 0
                   ? <Receipt size={20} className="text-white/50" />
@@ -617,7 +636,22 @@ export default function MenuPageClient({
             )
           })()}
 
-          {/* Center: cart or bill request (in orders view) */}
+          {/* Slot 2: € payment */}
+          <button
+            onClick={() => {
+              if (!sessionId || grandTotal === 0) return
+              setPaymentSplitPeople(1)
+              setPaymentMethod("card")
+              setPaymentSheetOpen(true)
+            }}
+            disabled={!sessionId || grandTotal === 0}
+            className="w-12 rounded-2xl flex flex-col items-center justify-center gap-1 bg-black/20 hover:bg-black/30 active:bg-black/35 transition-colors shrink-0 disabled:opacity-40"
+          >
+            <Euro size={20} className="text-white" />
+            <span className="text-[9px] text-white/70 font-medium leading-none">{t.payment}</span>
+          </button>
+
+          {/* Slot 3: cart or bill request (in orders view) */}
           {view === "orders" ? (
             billState === "done" ? (
               <div className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-white/15">
@@ -660,10 +694,10 @@ export default function MenuPageClient({
             </button>
           )}
 
-          {/* Right: waiter action sheet trigger */}
+          {/* Slot 4: waiter action sheet trigger */}
           <button
             onClick={() => { setWaiterSheetOpen(true); setWaiterSheetMsgOpen(false); setWaiterMessage("") }}
-            className="w-14 rounded-2xl flex flex-col items-center justify-center gap-1 bg-black/20 hover:bg-black/30 active:bg-black/35 transition-colors shrink-0"
+            className="w-12 rounded-2xl flex flex-col items-center justify-center gap-1 bg-black/20 hover:bg-black/30 active:bg-black/35 transition-colors shrink-0"
           >
             <Bell
               size={20}
@@ -857,6 +891,23 @@ export default function MenuPageClient({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Payment sheet */}
+      {paymentSheetOpen && (
+        <PaymentSheet
+          grandTotal={grandTotal}
+          splitPeople={paymentSplitPeople}
+          method={paymentMethod}
+          brandColor={brandColor}
+          currency={venue.currency}
+          t={t}
+          isPending={billState === "pending"}
+          onSplitChange={setPaymentSplitPeople}
+          onMethodChange={setPaymentMethod}
+          onConfirm={handlePaymentRequest}
+          onClose={() => setPaymentSheetOpen(false)}
+        />
       )}
 
       {/* Rating modal */}
@@ -1400,6 +1451,107 @@ function CartDrawer({ cart, brandColor, currency, total, notes, t, onNotesChange
             style={{ backgroundColor: brandColor }}
           >
             {isPending ? <Loader2 size={18} className="animate-spin mx-auto" /> : t.placeOrder}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Payment sheet ────────────────────────────────────────────────────────────
+function PaymentSheet({ grandTotal, splitPeople, method, brandColor, currency, t, isPending, onSplitChange, onMethodChange, onConfirm, onClose }: {
+  grandTotal: number; splitPeople: number; method: "cash" | "card"
+  brandColor: string; currency: string; t: typeof T.sk
+  isPending: boolean
+  onSplitChange: (n: number) => void
+  onMethodChange: (m: "cash" | "card") => void
+  onConfirm: () => void
+  onClose: () => void
+}) {
+  const perPerson = splitPeople > 1 ? grandTotal / splitPeople : null
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50" onClick={onClose}>
+      <div className="bg-white w-full max-w-md rounded-t-3xl" onClick={e => e.stopPropagation()}>
+        <div className="flex justify-center pt-3 pb-1">
+          <div className="w-10 h-1 rounded-full bg-gray-200" />
+        </div>
+        <div className="px-5 pt-3 pb-8 space-y-5">
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-bold text-gray-900 text-lg">{t.payment}</h3>
+              <p className="text-gray-400 text-sm">{t.total}: <span className="font-bold text-gray-900">{formatCurrency(grandTotal, currency)}</span></p>
+            </div>
+            <button onClick={onClose} className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
+              <X size={16} className="text-gray-500" />
+            </button>
+          </div>
+
+          {/* Payment method */}
+          <div>
+            <p className="text-sm font-semibold text-gray-700 mb-2">{t.paymentMethod}</p>
+            <div className="grid grid-cols-2 gap-2">
+              {(["card", "cash"] as const).map(m => {
+                const isActive = method === m
+                const Icon = m === "card" ? CreditCard : Banknote
+                const label = m === "card" ? t.card : t.cash
+                return (
+                  <button
+                    key={m}
+                    onClick={() => onMethodChange(m)}
+                    className="flex items-center gap-2.5 px-4 py-3 rounded-2xl border-2 transition-colors"
+                    style={{
+                      borderColor: isActive ? brandColor : "#e5e7eb",
+                      backgroundColor: isActive ? `${brandColor}0f` : "white",
+                    }}
+                  >
+                    <Icon size={20} style={{ color: isActive ? brandColor : "#9ca3af" }} />
+                    <span className="font-semibold text-sm" style={{ color: isActive ? brandColor : "#374151" }}>{label}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Split bill */}
+          <div>
+            <p className="text-sm font-semibold text-gray-700 mb-2">{t.splitBill}</p>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => onSplitChange(Math.max(1, splitPeople - 1))}
+                className="w-9 h-9 rounded-full border border-gray-200 flex items-center justify-center text-gray-600"
+              >
+                <Minus size={15} />
+              </button>
+              <span className="flex-1 text-center font-bold text-gray-900 text-base">
+                {splitPeople === 1 ? "Bez rozdelenia" : `${splitPeople} ${t.people}`}
+              </span>
+              <button
+                onClick={() => onSplitChange(Math.min(20, splitPeople + 1))}
+                className="w-9 h-9 rounded-full border border-gray-200 flex items-center justify-center text-gray-600"
+              >
+                <Plus size={15} />
+              </button>
+            </div>
+            {perPerson !== null && (
+              <p className="text-center text-sm text-gray-500 mt-2">
+                <span className="font-bold text-gray-900">{formatCurrency(perPerson, currency)}</span> {t.perPerson}
+              </p>
+            )}
+          </div>
+
+          {/* Confirm */}
+          <button
+            onClick={onConfirm}
+            disabled={isPending}
+            className="w-full py-3.5 rounded-2xl text-white font-bold text-base flex items-center justify-center gap-2 disabled:opacity-60 active:scale-[0.98] transition-all"
+            style={{ backgroundColor: brandColor }}
+          >
+            {isPending
+              ? <Loader2 size={18} className="animate-spin" />
+              : <><Euro size={18} />{t.confirmPayment}</>
+            }
           </button>
         </div>
       </div>

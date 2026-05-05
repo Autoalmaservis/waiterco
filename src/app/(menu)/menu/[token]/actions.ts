@@ -182,7 +182,8 @@ export async function getSessionOrders(sessionId: string): Promise<{
 export async function requestBill(
   tableId: string,
   venueId: string,
-  sessionId: string | null
+  sessionId: string | null,
+  note?: string
 ): Promise<{ error: string | null }> {
   const admin = createAdminClient()
   const { error } = await (admin as any).from("waiter_calls").insert({
@@ -191,6 +192,7 @@ export async function requestBill(
     session_id: sessionId,
     status: "pending",
     reason: "bill",
+    custom_message: note ?? null,
   })
   return { error: error?.message ?? null }
 }
