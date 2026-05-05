@@ -123,6 +123,7 @@ export default function MenuPageClient({
   const [orderError, setOrderError] = useState<string | null>(null)
   const [waiterCallState, setWaiterCallState] = useState<"idle" | "pending" | "done" | "error">("idle")
   const [isPending, startTransition] = useTransition()
+  const [flashItemId, setFlashItemId] = useState<string | null>(null)
 
   // Cart state (loaded from localStorage)
   const [cart, setCart] = useState<CartItem[]>([])
@@ -256,12 +257,16 @@ export default function MenuPageClient({
       if (existing) return prev.map(c => c.cartId === item.id ? { ...c, quantity: c.quantity + 1 } : c)
       return [...prev, { cartId: item.id, menuItemId: item.id, name: item.name, basePrice: item.base_price, quantity: 1, modifiers: [], station: item.station }]
     })
+    setFlashItemId(item.id)
+    setTimeout(() => setFlashItemId(null), 700)
   }
   function addWithModifiers(item: MenuItem, selectedModifiers: CartModifier[], qty: number) {
     setCart(prev => [...prev, {
       cartId: crypto.randomUUID(), menuItemId: item.id, name: item.name,
       basePrice: item.base_price, quantity: qty, modifiers: selectedModifiers, station: item.station,
     }])
+    setFlashItemId(item.id)
+    setTimeout(() => setFlashItemId(null), 700)
     setPickerItem(null)
   }
   function changeQty(cartId: string, delta: number) {
@@ -398,7 +403,7 @@ export default function MenuPageClient({
 
       {/* Category tiles view */}
       {view === "categories" && (
-        <div className="max-w-md mx-auto px-4 pt-5 pb-32">
+        <div className="max-w-md mx-auto px-4 pt-5 pb-28">
           <p className="text-xs text-gray-400 font-medium uppercase tracking-wider mb-3 px-1">{t.menu}</p>
           <div className="grid grid-cols-2 gap-3">
             {categories.map((cat) => {
@@ -434,7 +439,7 @@ export default function MenuPageClient({
 
       {/* Items view — single category */}
       {view === "items" && (
-        <div className="max-w-md mx-auto pb-32">
+        <div className="max-w-md mx-auto pb-28">
           {activeCategory?.description && (
             <div className="px-4 pt-4 pb-1">
               <p className="text-gray-500 text-sm">{activeCategory.description}</p>
@@ -446,8 +451,8 @@ export default function MenuPageClient({
               const withMods = hasModifiers(item.id)
               return (
                 <div key={item.id}
-                  className={`bg-white rounded-2xl shadow-sm border overflow-hidden ${!item.is_available ? "opacity-60" : ""}`}
-                  style={{ borderColor: "#f3f4f6" }}
+                  className={`bg-white rounded-2xl shadow-sm border overflow-hidden transition-colors duration-300 ${!item.is_available ? "opacity-60" : ""}`}
+                  style={{ borderColor: flashItemId === item.id ? "#22c55e" : "#f3f4f6", boxShadow: flashItemId === item.id ? "0 0 0 2px #22c55e33" : undefined }}
                 >
                   <button className="w-full text-left" onClick={() => handleItemClick(item)} disabled={!item.is_available}>
                     <div className="flex gap-3 p-3">
@@ -496,9 +501,9 @@ export default function MenuPageClient({
                       </button>
                     ) : qty === 0 ? (
                       <button onClick={(e) => { e.stopPropagation(); addSimple(item) }}
-                        className="w-8 h-8 rounded-full flex items-center justify-center text-white"
-                        style={{ backgroundColor: brandColor }}>
-                        <Plus size={16} />
+                        className="w-8 h-8 rounded-full flex items-center justify-center text-white transition-colors duration-300"
+                        style={{ backgroundColor: flashItemId === item.id ? "#22c55e" : brandColor }}>
+                        {flashItemId === item.id ? <Check size={16} /> : <Plus size={16} />}
                       </button>
                     ) : (
                       <div className="flex items-center gap-2">
@@ -541,23 +546,25 @@ export default function MenuPageClient({
         />
       )}
 
-      {/* Floating cart button */}
-      {(view === "categories" || view === "items") && cartCount > 0 && (
-        <div className="fixed bottom-6 left-0 right-0 z-40 flex justify-center px-4 pointer-events-none">
-          <button
-            onClick={() => setCartOpen(true)}
-            className="pointer-events-auto max-w-sm w-full flex items-center justify-between px-5 py-3.5 rounded-2xl text-white shadow-2xl active:scale-[0.98] transition-transform"
-            style={{ backgroundColor: brandColor }}
-          >
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center text-xs font-bold">{cartCount}</div>
-              <span className="font-semibold text-sm">{t.viewCart}</span>
-            </div>
-            <div className="flex items-center gap-1">
+      {/* Fixed bottom cart bar — always visible */}
+      {(view === "categories" || view === "items") && (
+        <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-sm border-t border-gray-100 px-4 pt-3 pb-5">
+          <div className="max-w-md mx-auto">
+            <button
+              onClick={() => cartCount > 0 && setCartOpen(true)}
+              disabled={cartCount === 0}
+              className="w-full flex items-center justify-between px-5 py-3.5 rounded-2xl text-white active:scale-[0.98] transition-all disabled:cursor-default"
+              style={{ backgroundColor: cartCount > 0 ? brandColor : "#d1d5db" }}
+            >
+              <div className="flex items-center gap-2">
+                <div className={`w-6 h-6 rounded-full bg-white/20 flex items-center justify-center text-xs font-bold transition-transform duration-200 ${flashItemId ? "scale-125" : ""}`}>
+                  {cartCount}
+                </div>
+                <span className="font-semibold text-sm">{cartCount === 0 ? "Košík je prázdny" : t.viewCart}</span>
+              </div>
               <span className="font-bold text-sm">{formatCurrency(cartTotal, venue.currency)}</span>
-              <ChevronRight size={16} />
-            </div>
-          </button>
+            </button>
+          </div>
         </div>
       )}
 
