@@ -114,7 +114,7 @@ export default function MenuPageClient({
 
   // UI state
   const [lang, setLang] = useState<Lang>("sk")
-  const [view, setView] = useState<"menu" | "orders">("menu")
+  const [view, setView] = useState<"categories" | "items" | "orders">("categories")
   const [activeCategoryId, setActiveCategoryId] = useState(categories[0]?.id ?? "")
   const [pickerItem, setPickerItem] = useState<MenuItem | null>(null)
   const [detailItem, setDetailItem] = useState<MenuItem | null>(null)
@@ -210,7 +210,7 @@ export default function MenuPageClient({
   useEffect(() => {
     let raf: number | null = null
     function handleScroll() {
-      if (manualScroll.current || view !== "menu") return
+      if (manualScroll.current || view !== "items") return
       if (raf) return
       raf = requestAnimationFrame(() => {
         raf = null
@@ -293,6 +293,7 @@ export default function MenuPageClient({
           await pollOrders()
         }
         setView("orders")
+        setActiveCategoryId(categories[0]?.id ?? "")
       }
     })
   }
@@ -309,21 +310,43 @@ export default function MenuPageClient({
 
   if (!venue.is_open) return <ClosedScreen venueName={venue.name} reason={venue.closed_reason} brandColor={brandColor} />
 
+  const activeCategory = categories.find(c => c.id === activeCategoryId)
+  const categoryItems = items.filter(i => i.category_id === activeCategoryId)
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Sticky header */}
       <header className="sticky top-0 z-30 shadow-sm" style={{ backgroundColor: brandColor }}>
         <div className="max-w-md mx-auto px-4 py-3 flex items-center gap-2">
-          {venue.logo_url ? (
-            <img src={venue.logo_url} alt={venue.name} className="w-9 h-9 rounded-lg object-cover shrink-0" />
-          ) : (
-            <div className="w-9 h-9 rounded-lg bg-white/20 flex items-center justify-center shrink-0">
-              <Coffee size={18} className="text-white" />
-            </div>
+
+          {/* Back button in items view */}
+          {view === "items" && (
+            <button onClick={() => setView("categories")}
+              className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center shrink-0">
+              <ArrowLeft size={16} className="text-white" />
+            </button>
           )}
+
+          {/* Logo / venue info */}
+          {view !== "items" && (
+            venue.logo_url ? (
+              <img src={venue.logo_url} alt={venue.name} className="w-9 h-9 rounded-lg object-cover shrink-0" />
+            ) : (
+              <div className="w-9 h-9 rounded-lg bg-white/20 flex items-center justify-center shrink-0">
+                <Coffee size={18} className="text-white" />
+              </div>
+            )
+          )}
+
           <div className="flex-1 min-w-0">
-            <h1 className="text-white font-bold text-sm leading-tight truncate">{venue.name}</h1>
-            <p className="text-white/70 text-xs">{t.table}: {table.name}</p>
+            {view === "items" ? (
+              <h1 className="text-white font-bold text-sm leading-tight truncate">{activeCategory?.name}</h1>
+            ) : (
+              <>
+                <h1 className="text-white font-bold text-sm leading-tight truncate">{venue.name}</h1>
+                <p className="text-white/70 text-xs">{t.table}: {table.name}</p>
+              </>
+            )}
           </div>
 
           {/* Language toggle */}
@@ -338,7 +361,7 @@ export default function MenuPageClient({
           {/* Orders badge */}
           {sessionId && (
             <button
-              onClick={() => setView(v => v === "orders" ? "menu" : "orders")}
+              onClick={() => setView(v => v === "orders" ? "categories" : "orders")}
               className="relative flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all shrink-0"
               style={{ backgroundColor: view === "orders" ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.2)", color: view === "orders" ? brandColor : "white" }}
             >
@@ -371,124 +394,132 @@ export default function MenuPageClient({
             </span>
           </button>
         </div>
-
-        {/* Category tabs (menu view only) */}
-        {view === "menu" && (
-          <div ref={navRef} className="flex overflow-x-auto gap-1 px-4 pb-2" style={{ scrollbarWidth: "none" }}>
-            {categories.map((cat) => (
-              <button
-                key={cat.id}
-                data-cat={cat.id}
-                onClick={() => scrollToCategory(cat.id)}
-                className="shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-colors"
-                style={
-                  activeCategoryId === cat.id
-                    ? { backgroundColor: "rgba(255,255,255,0.92)", color: brandColor }
-                    : { backgroundColor: "rgba(255,255,255,0.2)", color: "#fff" }
-                }
-              >
-                {cat.name}
-              </button>
-            ))}
-          </div>
-        )}
       </header>
 
-      {/* Menu view */}
-      {view === "menu" && (
+      {/* Category tiles view */}
+      {view === "categories" && (
+        <div className="max-w-md mx-auto px-4 pt-5 pb-32">
+          <p className="text-xs text-gray-400 font-medium uppercase tracking-wider mb-3 px-1">{t.menu}</p>
+          <div className="grid grid-cols-2 gap-3">
+            {categories.map((cat) => {
+              const catItemCount = items.filter(i => i.category_id === cat.id).length
+              if (catItemCount === 0) return null
+              const catItems = items.filter(i => i.category_id === cat.id)
+              const firstImage = catItems.find(i => i.image_url)?.image_url ?? null
+              return (
+                <button
+                  key={cat.id}
+                  onClick={() => { setActiveCategoryId(cat.id); setView("items") }}
+                  className="relative rounded-2xl overflow-hidden aspect-square flex flex-col justify-end text-left active:scale-[0.97] transition-transform shadow-sm"
+                >
+                  {/* Background */}
+                  {firstImage ? (
+                    <img src={firstImage} alt={cat.name} className="absolute inset-0 w-full h-full object-cover" />
+                  ) : (
+                    <div className="absolute inset-0" style={{ backgroundColor: `${brandColor}20` }} />
+                  )}
+                  {/* Gradient overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                  {/* Text */}
+                  <div className="relative p-3">
+                    <p className="text-white font-bold text-base leading-tight">{cat.name}</p>
+                    <p className="text-white/70 text-xs mt-0.5">{catItemCount} {catItemCount === 1 ? "položka" : catItemCount < 5 ? "položky" : "položiek"}</p>
+                  </div>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Items view — single category */}
+      {view === "items" && (
         <div className="max-w-md mx-auto pb-32">
-          {categories.map((cat) => {
-            const catItems = items.filter(i => i.category_id === cat.id)
-            if (catItems.length === 0) return null
-            return (
-              <section key={cat.id} ref={(el) => { categoryRefs.current[cat.id] = el }}>
-                <div className="px-4 pt-5 pb-2">
-                  <h2 className="font-bold text-gray-900 text-base">{cat.name}</h2>
-                  {cat.description && <p className="text-gray-500 text-xs mt-0.5">{cat.description}</p>}
-                </div>
-                <div className="space-y-2 px-4">
-                  {catItems.map((item) => {
-                    const qty = cartQty(item.id)
-                    const withMods = hasModifiers(item.id)
-                    return (
-                      <div key={item.id}
-                        className={`bg-white rounded-2xl shadow-sm border overflow-hidden ${!item.is_available ? "opacity-60" : ""}`}
-                        style={{ borderColor: "#f3f4f6" }}
-                      >
-                        <button className="w-full text-left" onClick={() => handleItemClick(item)} disabled={!item.is_available}>
-                          <div className="flex gap-3 p-3">
-                            {item.image_url && (
-                              <img src={item.image_url} alt={item.name} className="w-20 h-20 rounded-xl object-cover shrink-0" />
-                            )}
-                            <div className="flex-1 min-w-0">
-                              <p className="font-semibold text-gray-900 text-sm leading-snug">{item.name}</p>
-                              {item.description && (
-                                <p className="text-gray-500 text-xs mt-0.5 line-clamp-2 leading-snug">{item.description}</p>
-                              )}
-                              {item.allergens?.length > 0 && (
-                                <div className="flex items-center gap-1 mt-1">
-                                  <AlertTriangle size={10} className="text-amber-500 shrink-0" />
-                                  <span className="text-amber-600 text-[10px]">{item.allergens.join(", ")}</span>
-                                </div>
-                              )}
-                              {item.tags?.length > 0 && (
-                                <div className="flex flex-wrap gap-1 mt-1">
-                                  {item.tags.map(tag => (
-                                    <span key={tag} className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-500">
-                                      <Tag size={8} />{tag}
-                                    </span>
-                                  ))}
-                                </div>
-                              )}
-                              {withMods && (
-                                <p className="text-[10px] text-gray-400 mt-1 flex items-center gap-0.5">
-                                  <ChevronDown size={10} />{t.options}
-                                </p>
-                              )}
-                            </div>
+          {activeCategory?.description && (
+            <div className="px-4 pt-4 pb-1">
+              <p className="text-gray-500 text-sm">{activeCategory.description}</p>
+            </div>
+          )}
+          <div className="space-y-2 px-4 pt-4">
+            {categoryItems.map((item) => {
+              const qty = cartQty(item.id)
+              const withMods = hasModifiers(item.id)
+              return (
+                <div key={item.id}
+                  className={`bg-white rounded-2xl shadow-sm border overflow-hidden ${!item.is_available ? "opacity-60" : ""}`}
+                  style={{ borderColor: "#f3f4f6" }}
+                >
+                  <button className="w-full text-left" onClick={() => handleItemClick(item)} disabled={!item.is_available}>
+                    <div className="flex gap-3 p-3">
+                      {item.image_url && (
+                        <img src={item.image_url} alt={item.name} className="w-20 h-20 rounded-xl object-cover shrink-0" />
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-gray-900 text-sm leading-snug">{item.name}</p>
+                        {item.description && (
+                          <p className="text-gray-500 text-xs mt-0.5 line-clamp-2 leading-snug">{item.description}</p>
+                        )}
+                        {item.allergens?.length > 0 && (
+                          <div className="flex items-center gap-1 mt-1">
+                            <AlertTriangle size={10} className="text-amber-500 shrink-0" />
+                            <span className="text-amber-600 text-[10px]">{item.allergens.join(", ")}</span>
                           </div>
-                        </button>
-                        <div className="flex items-center justify-between px-3 pb-3">
-                          <span className="font-bold text-sm" style={{ color: brandColor }}>
-                            {formatCurrency(item.base_price, venue.currency)}
-                          </span>
-                          {!item.is_available ? (
-                            <span className="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded-lg">{t.unavailable}</span>
-                          ) : withMods ? (
-                            <button onClick={() => setPickerItem(item)}
-                              className="px-3 py-1.5 rounded-xl text-white text-xs font-semibold"
-                              style={{ backgroundColor: brandColor }}>
-                              {t.choose}
-                            </button>
-                          ) : qty === 0 ? (
-                            <button onClick={(e) => { e.stopPropagation(); addSimple(item) }}
-                              className="w-8 h-8 rounded-full flex items-center justify-center text-white"
-                              style={{ backgroundColor: brandColor }}>
-                              <Plus size={16} />
-                            </button>
-                          ) : (
-                            <div className="flex items-center gap-2">
-                              <button onClick={(e) => { e.stopPropagation(); changeQty(item.id, -1) }}
-                                className="w-7 h-7 rounded-full border flex items-center justify-center"
-                                style={{ borderColor: brandColor, color: brandColor }}>
-                                <Minus size={14} />
-                              </button>
-                              <span className="text-sm font-bold w-4 text-center text-gray-900">{qty}</span>
-                              <button onClick={(e) => { e.stopPropagation(); addSimple(item) }}
-                                className="w-7 h-7 rounded-full flex items-center justify-center text-white"
-                                style={{ backgroundColor: brandColor }}>
-                                <Plus size={14} />
-                              </button>
-                            </div>
-                          )}
-                        </div>
+                        )}
+                        {item.tags?.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {item.tags.map(tag => (
+                              <span key={tag} className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-500">
+                                <Tag size={8} />{tag}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        {withMods && (
+                          <p className="text-[10px] text-gray-400 mt-1 flex items-center gap-0.5">
+                            <ChevronDown size={10} />{t.options}
+                          </p>
+                        )}
                       </div>
-                    )
-                  })}
+                    </div>
+                  </button>
+                  <div className="flex items-center justify-between px-3 pb-3">
+                    <span className="font-bold text-sm" style={{ color: brandColor }}>
+                      {formatCurrency(item.base_price, venue.currency)}
+                    </span>
+                    {!item.is_available ? (
+                      <span className="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded-lg">{t.unavailable}</span>
+                    ) : withMods ? (
+                      <button onClick={() => setPickerItem(item)}
+                        className="px-3 py-1.5 rounded-xl text-white text-xs font-semibold"
+                        style={{ backgroundColor: brandColor }}>
+                        {t.choose}
+                      </button>
+                    ) : qty === 0 ? (
+                      <button onClick={(e) => { e.stopPropagation(); addSimple(item) }}
+                        className="w-8 h-8 rounded-full flex items-center justify-center text-white"
+                        style={{ backgroundColor: brandColor }}>
+                        <Plus size={16} />
+                      </button>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <button onClick={(e) => { e.stopPropagation(); changeQty(item.id, -1) }}
+                          className="w-7 h-7 rounded-full border flex items-center justify-center"
+                          style={{ borderColor: brandColor, color: brandColor }}>
+                          <Minus size={14} />
+                        </button>
+                        <span className="text-sm font-bold w-4 text-center text-gray-900">{qty}</span>
+                        <button onClick={(e) => { e.stopPropagation(); addSimple(item) }}
+                          className="w-7 h-7 rounded-full flex items-center justify-center text-white"
+                          style={{ backgroundColor: brandColor }}>
+                          <Plus size={14} />
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </section>
-            )
-          })}
+              )
+            })}
+          </div>
         </div>
       )}
 
@@ -506,12 +537,12 @@ export default function MenuPageClient({
           currency={venue.currency}
           t={t}
           lang={lang}
-          onOrderMore={() => setView("menu")}
+          onOrderMore={() => setView("categories")}
         />
       )}
 
-      {/* Floating cart button (menu view only) */}
-      {view === "menu" && cartCount > 0 && (
+      {/* Floating cart button */}
+      {(view === "categories" || view === "items") && cartCount > 0 && (
         <div className="fixed bottom-6 left-0 right-0 z-40 flex justify-center px-4 pointer-events-none">
           <button
             onClick={() => setCartOpen(true)}
