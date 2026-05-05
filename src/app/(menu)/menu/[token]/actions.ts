@@ -243,6 +243,27 @@ export async function sendWaiterMessage(
   return { error: error?.message ?? null }
 }
 
+export type ReviewItem = {
+  id: string
+  overall_rating: number
+  food_rating: number | null
+  service_rating: number | null
+  comment: string | null
+  created_at: string
+}
+
+export async function getVenueReviews(venueId: string): Promise<ReviewItem[]> {
+  const admin = createAdminClient()
+  const { data } = await admin
+    .from("reviews")
+    .select("id, overall_rating, food_rating, service_rating, comment, created_at")
+    .eq("venue_id", venueId)
+    .eq("is_visible", true)
+    .order("created_at", { ascending: false })
+    .limit(50)
+  return (data ?? []) as ReviewItem[]
+}
+
 export async function submitReview(
   venueId: string,
   sessionId: string | null,

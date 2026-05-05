@@ -67,6 +67,17 @@ export default async function MenuPage({ params }: Props) {
     }
   }
 
+  // Fetch avg rating
+  const { data: reviewStats } = await supabase
+    .from("reviews")
+    .select("overall_rating")
+    .eq("venue_id", venue.id)
+    .eq("is_visible", true)
+  const avgRating = reviewStats && reviewStats.length > 0
+    ? (reviewStats as any[]).reduce((s: number, r: any) => s + r.overall_rating, 0) / reviewStats.length
+    : null
+  const reviewCount = reviewStats?.length ?? 0
+
   // Check for active session (for order tracking pre-load)
   const admin = createAdminClient()
   const { data: activeSession } = await admin
@@ -104,6 +115,8 @@ export default async function MenuPage({ params }: Props) {
         closed_reason: venue.closed_reason ?? null,
         currency: venue.currency,
         primary_color: venue.primary_color ?? null,
+        avg_rating: avgRating,
+        review_count: reviewCount,
       }}
       categories={categoriesResult.data ?? []}
       items={items}

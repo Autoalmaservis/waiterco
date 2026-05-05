@@ -11,7 +11,7 @@ import { formatCurrency } from "@/lib/utils"
 import { getCategoryEmoji } from "@/lib/category-emoji"
 import {
   placeCustomerOrder, callWaiter, getSessionOrders, requestBill, submitReview,
-  sendWaiterMessage, type TrackingOrder,
+  sendWaiterMessage, getVenueReviews, type TrackingOrder, type ReviewItem,
 } from "./actions"
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -34,6 +34,7 @@ type VenueInfo = {
   cover_image_url: string | null; address: string | null; city: string | null
   description: string | null; is_open: boolean; closed_reason: string | null
   currency: string; primary_color: string | null
+  avg_rating: number | null; review_count: number
 }
 type Props = {
   table: TableInfo; venue: VenueInfo; categories: Category[]
@@ -152,6 +153,8 @@ export default function MenuPageClient({
   const [paymentSheetOpen, setPaymentSheetOpen] = useState(false)
   const [paymentSplitPeople, setPaymentSplitPeople] = useState(1)
   const [paymentMethod, setPaymentMethod] = useState<"cash" | "card">("card")
+  const [reviewsOpen, setReviewsOpen] = useState(false)
+  const [manualRatingOpen, setManualRatingOpen] = useState(false)
   const cartBtnRef = useRef<HTMLButtonElement>(null)
   const [ratingDone, setRatingDone] = useState(false)
   const prevSessionStatus = useRef(initialSessionStatus)
@@ -386,7 +389,7 @@ export default function MenuPageClient({
             <ArrowLeft size={20} />
           </button>
 
-          {/* Center: logo + venue/category name */}
+          {/* Center: logo + table/category name */}
           <div className="flex-1 flex items-center gap-2 min-w-0">
             {view !== "items" && (
               venue.logo_url
@@ -400,8 +403,18 @@ export default function MenuPageClient({
                 <p className="font-bold text-white text-sm leading-tight truncate">{activeCategory?.name}</p>
               ) : (
                 <>
-                  <p className="font-bold text-white text-sm leading-tight truncate">{venue.name}</p>
-                  <p className="text-white/80 text-xs font-medium">{t.table}: {table.name}</p>
+                  <p className="text-white font-semibold text-sm leading-tight">{t.table}: {table.name}</p>
+                  <button onClick={() => setReviewsOpen(true)} className="flex items-center gap-1 mt-0.5">
+                    {venue.avg_rating !== null && venue.review_count > 0 ? (
+                      <>
+                        <Star size={11} fill="white" className="text-white" />
+                        <span className="text-white text-xs font-bold">{venue.avg_rating.toFixed(1)}</span>
+                        <span className="text-white/60 text-[10px]">({venue.review_count})</span>
+                      </>
+                    ) : (
+                      <span className="text-white/50 text-[10px]">Pridať hodnotenie</span>
+                    )}
+                  </button>
                 </>
               )}
             </div>
@@ -759,6 +772,17 @@ export default function MenuPageClient({
               <div className="w-10 h-1 rounded-full bg-gray-200" />
             </div>
             <div className="px-5 pt-2 pb-6 space-y-2">
+              {/* Venue info */}
+              {(venue.description || venue.address || venue.city) && (
+                <div className="px-4 py-3.5 rounded-2xl bg-gray-50">
+                  <p className="text-xs text-gray-400 font-medium uppercase tracking-wider mb-1.5">O prevádzke</p>
+                  {venue.description && <p className="text-sm text-gray-600 leading-relaxed">{venue.description}</p>}
+                  {(venue.address || venue.city) && (
+                    <p className="text-xs text-gray-400 mt-1.5">{[venue.address, venue.city].filter(Boolean).join(", ")}</p>
+                  )}
+                </div>
+              )}
+
               {/* Language toggle */}
               <button
                 onClick={() => { setLang(l => l === "sk" ? "en" : "sk") }}
@@ -910,18 +934,30 @@ export default function MenuPageClient({
         />
       )}
 
+      {/* Reviews sheet */}
+      {reviewsOpen && (
+        <ReviewsSheet
+          venueId={venue.id}
+          brandColor={brandColor}
+          t={t}
+          onClose={() => setReviewsOpen(false)}
+          onAddReview={() => { setReviewsOpen(false); setManualRatingOpen(true) }}
+        />
+      )}
+
       {/* Rating modal */}
-      {ratingOpen && !ratingDone && (
+      {(ratingOpen && !ratingDone || manualRatingOpen) && (
         <RatingModal
           venueName={venue.name}
           venueId={venue.id}
           sessionId={sessionId}
           brandColor={brandColor}
           t={t}
-          onClose={() => setRatingOpen(false)}
+          onClose={() => { setRatingOpen(false); setManualRatingOpen(false) }}
           onDone={() => {
             setRatingDone(true)
             setRatingOpen(false)
+            setManualRatingOpen(false)
             localStorage.setItem(`ew-rated-${table.id}`, "1")
           }}
         />
@@ -1217,10 +1253,10 @@ function ItemDetailSheet({ item, brandColor, currency, qty, t, onAdd, onRemove, 
   t: typeof T.sk; onAdd: () => void; onRemove: () => void; onClose: () => void
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50" onClick={onClose}>
-      <div className="bg-white w-full max-w-md rounded-t-3xl max-h-[85vh] overflow-y-auto pb-safe"
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={onClose}>
+      <div className="bg-white w-full max-w-md rounded-3xl max-h-[75vh] overflow-y-auto"
         onClick={e => e.stopPropagation()}>
-        {item.image_url && <img src={item.image_url} alt={item.name} className="w-full h-52 object-cover" />}
+        {item.image_url && <img src={item.image_url} alt={item.name} className="w-full h-44 object-cover rounded-t-3xl" />}
         <div className="px-5 pt-4 pb-8">
           <div className="flex items-start justify-between gap-3 mb-3">
             <h3 className="font-bold text-gray-900 text-xl leading-tight">{item.name}</h3>
@@ -1552,6 +1588,82 @@ function PaymentSheet({ grandTotal, splitPeople, method, brandColor, currency, t
               ? <Loader2 size={18} className="animate-spin" />
               : <><Euro size={18} />{t.confirmPayment}</>
             }
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Reviews sheet ───────────────────────────────────────────────────────────
+function ReviewsSheet({ venueId, brandColor, t, onClose, onAddReview }: {
+  venueId: string; brandColor: string; t: typeof T.sk; onClose: () => void; onAddReview: () => void
+}) {
+  const [reviews, setReviews] = useState<ReviewItem[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    getVenueReviews(venueId).then(r => { setReviews(r); setLoading(false) })
+  }, [venueId])
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50" onClick={onClose}>
+      <div className="bg-white w-full max-w-md rounded-t-3xl max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
+        <div className="flex justify-center pt-3 pb-1 shrink-0">
+          <div className="w-10 h-1 rounded-full bg-gray-200" />
+        </div>
+        <div className="flex items-center justify-between px-5 pt-2 pb-3 border-b border-gray-100 shrink-0">
+          <div>
+            <h3 className="font-bold text-gray-900 text-lg">Hodnotenia</h3>
+            {!loading && reviews.length > 0 && (
+              <p className="text-xs text-gray-400">{reviews.length} hodnotení</p>
+            )}
+          </div>
+          <button onClick={onClose} className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
+            <X size={16} className="text-gray-500" />
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto px-5 py-3 space-y-3">
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 size={24} className="animate-spin text-gray-300" />
+            </div>
+          ) : reviews.length === 0 ? (
+            <div className="text-center py-12">
+              <Star size={36} className="text-gray-200 mx-auto mb-2" />
+              <p className="text-gray-400 text-sm">Zatiaľ žiadne hodnotenia</p>
+              <p className="text-gray-300 text-xs mt-1">Buďte prvý, kto ohodnotí túto reštauráciu</p>
+            </div>
+          ) : (
+            reviews.map(r => (
+              <div key={r.id} className="bg-gray-50 rounded-2xl p-3.5 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex gap-0.5">
+                    {[1,2,3,4,5].map(s => (
+                      <Star key={s} size={14} fill={s <= r.overall_rating ? brandColor : "none"} stroke={s <= r.overall_rating ? brandColor : "#d1d5db"} />
+                    ))}
+                  </div>
+                  <span className="text-xs text-gray-400">{new Date(r.created_at).toLocaleDateString("sk-SK")}</span>
+                </div>
+                {(r.food_rating || r.service_rating) && (
+                  <div className="flex gap-3">
+                    {r.food_rating && <span className="text-[11px] text-gray-500">{t.food}: {r.food_rating}/5</span>}
+                    {r.service_rating && <span className="text-[11px] text-gray-500">{t.service}: {r.service_rating}/5</span>}
+                  </div>
+                )}
+                {r.comment && <p className="text-sm text-gray-700 leading-snug">"{r.comment}"</p>}
+              </div>
+            ))
+          )}
+        </div>
+        <div className="px-5 pb-8 pt-3 border-t border-gray-100 shrink-0">
+          <button
+            onClick={onAddReview}
+            className="w-full py-3.5 rounded-2xl text-white font-bold text-sm flex items-center justify-center gap-2"
+            style={{ backgroundColor: brandColor }}
+          >
+            <Star size={16} fill="white" />
+            Pridať hodnotenie
           </button>
         </div>
       </div>
