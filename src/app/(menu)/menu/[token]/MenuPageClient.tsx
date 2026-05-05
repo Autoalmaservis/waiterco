@@ -7,6 +7,7 @@ import {
   ArrowLeft, Receipt, Share2, Globe, Clock, Loader2,
 } from "lucide-react"
 import { formatCurrency } from "@/lib/utils"
+import { getCategoryEmoji } from "@/lib/category-emoji"
 import {
   placeCustomerOrder, callWaiter, getSessionOrders, requestBill, submitReview,
   type TrackingOrder,
@@ -421,7 +422,9 @@ export default function MenuPageClient({
                   {firstImage ? (
                     <img src={firstImage} alt={cat.name} className="absolute inset-0 w-full h-full object-cover" />
                   ) : (
-                    <div className="absolute inset-0" style={{ backgroundColor: `${brandColor}20` }} />
+                    <div className="absolute inset-0 flex items-center justify-center" style={{ backgroundColor: `${brandColor}18` }}>
+                      <span className="animate-cat-float text-5xl select-none">{getCategoryEmoji(cat.name)}</span>
+                    </div>
                   )}
                   {/* Gradient overlay */}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />

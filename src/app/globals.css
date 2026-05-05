@@ -50,3 +50,12 @@ body {
   color: hsl(var(--foreground));
   font-family: var(--font-geist-sans), Arial, sans-serif;
 }
+
+@keyframes cat-float {
+  0%, 100% { transform: translateY(0px) scale(1); }
+  50% { transform: translateY(-7px) scale(1.06); }
+}
+.animate-cat-float {
+  animation: cat-float 2.8s ease-in-out infinite;
+  display: inline-block;
+}

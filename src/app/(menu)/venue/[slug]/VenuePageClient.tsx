@@ -8,6 +8,7 @@ import {
   ShoppingCart, ChevronRight, Truck, Package, QrCode, Loader2, CheckCircle2,
 } from "lucide-react"
 import { formatCurrency } from "@/lib/utils"
+import { getCategoryEmoji } from "@/lib/category-emoji"
 import { placeDeliveryOrder, type DeliveryInfo } from "./actions"
 
 type MenuItem = {
@@ -203,7 +204,9 @@ export default function VenuePageClient({ venue, categories, items, modifierGrou
                   {firstImage ? (
                     <img src={firstImage} alt={cat.name} className="absolute inset-0 w-full h-full object-cover" />
                   ) : (
-                    <div className="absolute inset-0" style={{ backgroundColor: `${brand}20` }} />
+                    <div className="absolute inset-0 flex items-center justify-center" style={{ backgroundColor: `${brand}18` }}>
+                      <span className="animate-cat-float text-5xl select-none">{getCategoryEmoji(cat.name)}</span>
+                    </div>
                   )}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
                   <div className="relative p-3">
