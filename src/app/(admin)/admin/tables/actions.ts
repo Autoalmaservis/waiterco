@@ -53,6 +53,31 @@ export async function deleteTable(id: string): Promise<{ error: string } | null>
   try {
     await ctx()
     const supabase = createAdminClient()
+
+    // Cascade manually: sessions → orders → items → modifiers
+    const { data: sessions } = await supabase.from("table_sessions").select("id").eq("table_id", id)
+    const sessionIds = (sessions ?? []).map(s => s.id)
+
+    if (sessionIds.length > 0) {
+      const { data: orders } = await (supabase as any).from("orders").select("id").in("session_id", sessionIds)
+      const orderIds = (orders ?? []).map((o: any) => o.id)
+
+      if (orderIds.length > 0) {
+        const { data: orderItems } = await (supabase as any).from("order_items").select("id").in("order_id", orderIds)
+        const itemIds = (orderItems ?? []).map((i: any) => i.id)
+        if (itemIds.length > 0) {
+          await (supabase as any).from("order_item_modifiers").delete().in("order_item_id", itemIds)
+        }
+        await (supabase as any).from("order_items").delete().in("order_id", orderIds)
+      }
+
+      await (supabase as any).from("orders").delete().in("session_id", sessionIds)
+      await (supabase as any).from("waiter_calls").delete().in("session_id", sessionIds)
+      await supabase.from("table_sessions").delete().in("id", sessionIds)
+    }
+
+    await (supabase as any).from("waiter_calls").delete().eq("table_id", id)
+
     const { error } = await supabase.from("tables").delete().eq("id", id)
     if (error) return { error: error.message }
     revalidatePath("/admin/tables")
