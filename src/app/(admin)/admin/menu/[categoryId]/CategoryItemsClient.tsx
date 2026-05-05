@@ -124,7 +124,7 @@ function YesNo({ checked, onChange }: { checked: boolean; onChange: (v: boolean)
       <button
         type="button"
         onClick={() => onChange(false)}
-        className={`px-4 py-1.5 text-sm font-medium transition-colors border-l border-gray-200 ${!checked ? "bg-gray-100 text-gray-700" : "bg-white text-gray-400 hover:text-gray-600"}`}
+        className={`px-4 py-1.5 text-sm font-medium transition-colors border-l border-gray-200 ${!checked ? "bg-orange-500 text-white" : "bg-white text-gray-400 hover:text-gray-600"}`}
       >
         Nie
       </button>
