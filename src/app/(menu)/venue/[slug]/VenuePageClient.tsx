@@ -99,8 +99,9 @@ export default function VenuePageClient({ venue, categories, items, modifierGrou
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
         <Link href="/restaurants"
-          className="absolute top-4 left-4 w-9 h-9 rounded-full bg-black/30 backdrop-blur-sm flex items-center justify-center">
-          <ArrowLeft size={18} className="text-white" />
+          className="fixed top-4 left-4 z-40 w-10 h-10 rounded-full flex items-center justify-center shadow-md"
+          style={{ backgroundColor: brand }}>
+          <ArrowLeft size={20} className="text-white" />
         </Link>
         {!venue.is_open && (
           <div className="absolute top-4 right-4 px-3 py-1.5 rounded-full bg-black/60 text-white text-xs font-semibold">
