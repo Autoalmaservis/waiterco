@@ -14,7 +14,8 @@ import { placeDeliveryOrder, getVenueReviews, submitVenueReview, type DeliveryIn
 type MenuItem = {
   id: string; category_id: string; name: string; description: string | null
   image_url: string | null; base_price: number; is_available: boolean
-  available_for_delivery: boolean; allergens: string[]; tags: string[]; station: string
+  available_for_delivery: boolean; available_for_takeaway: boolean
+  allergens: string[]; tags: string[]; station: string
 }
 type Category = { id: string; name: string; description: string | null; sort_order: number }
 type ModifierGroupRow = { id: string; item_id: string; name: string; min_select: number; max_select: number; sort_order: number }
@@ -57,7 +58,11 @@ export default function VenuePageClient({ venue, categories, items, modifierGrou
   const [pickerItem, setPickerItem] = useState<MenuItem | null>(null)
   const [detailItem, setDetailItem] = useState<MenuItem | null>(null)
   const [orderMode, setOrderMode] = useState<"delivery" | "takeaway" | null>(null)
-  const visibleItems = orderMode ? items.filter(i => i.available_for_delivery !== false) : items
+  const visibleItems = orderMode === "delivery"
+    ? items.filter(i => i.available_for_delivery !== false)
+    : orderMode === "takeaway"
+    ? items.filter(i => i.available_for_takeaway !== false)
+    : items
   const [pressId, setPressId] = useState<string | null>(null)
   const [reviewSheetOpen, setReviewSheetOpen] = useState(false)
   const [ratingModalOpen, setRatingModalOpen] = useState(false)

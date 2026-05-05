@@ -163,6 +163,7 @@ export interface Database {
           is_active: boolean
           is_available: boolean
           available_for_delivery: boolean
+          available_for_takeaway: boolean
           unavailable_reason: string | null
           sort_order: number
           created_at: string
