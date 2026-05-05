@@ -400,8 +400,41 @@ export default function WaiterClient({
         {/* STOLY — split layout */}
         {activeTab === "tables" && (
           <div className="h-full flex overflow-hidden">
-            {/* Floor plan — full width */}
-            <div className="flex-1 overflow-auto p-3">
+            {/* Left: table list */}
+            <div className="w-52 shrink-0 border-r border-gray-800 overflow-y-auto flex flex-col">
+              {initialTables.length === 0 ? (
+                <div className="flex-1 flex items-center justify-center p-4">
+                  <EmptyState icon={Users} text="Ziadne stoly" />
+                </div>
+              ) : initialTables.map(table => {
+                const s = tableStyle(table.id)
+                const session = initialSessions.find(ss => ss.table_id === table.id)
+                const tableOrders = initialOrders.filter(o => o.table_id === table.id)
+                return (
+                  <button
+                    key={table.id}
+                    onClick={() => setSelectedTableId(table.id)}
+                    className="w-full border-b border-gray-800 px-3 py-3 hover:bg-gray-900 active:bg-gray-800 transition-colors text-left"
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: s.border }} />
+                      <span className="text-white text-sm font-semibold truncate flex-1">{table.name}</span>
+                      {tableOrders.length > 0 && (
+                        <span className="text-orange-400 text-xs font-bold shrink-0">{tableOrders.length} obj.</span>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-500 pl-[18px]" suppressHydrationWarning>
+                      {session
+                        ? (session.customer_count ? `${session.customer_count} hosti · ${timeAgo(session.opened_at)}` : timeAgo(session.opened_at))
+                        : "Volny stol"}
+                    </p>
+                  </button>
+                )
+              })}
+            </div>
+
+            {/* Right: floor plan — full height */}
+            <div className="flex-1 flex flex-col overflow-hidden p-3">
               {!hasFloorPlan ? (
                 <div className="h-full flex flex-col items-center justify-center text-gray-700 text-sm gap-2">
                   <Users size={32} className="opacity-20" />
@@ -409,7 +442,7 @@ export default function WaiterClient({
                 </div>
               ) : (
                 <>
-                  <div className="overflow-auto rounded-xl border border-gray-800 bg-gray-950 p-3">
+                  <div className="flex-1 overflow-auto rounded-xl border border-gray-800 bg-gray-950 p-3 relative">
                     <div style={{ position: "relative", width: fpW, height: fpH, minWidth: "100%" }}>
                       {initialZones.map(zone => (
                         <div key={zone.id} style={{
@@ -498,8 +531,7 @@ export default function WaiterClient({
                         </div>
                       )}
                     </div>
-                  </div>
-                  <div className="flex gap-4 mt-3 px-1">
+                  <div className="absolute bottom-3 left-3 flex gap-3 bg-gray-950/80 rounded-lg px-2.5 py-1.5">
                     {[
                       { color: "#ef4444", label: "Volanie" },
                       { color: "#d97706", label: "Objednavky" },
@@ -507,10 +539,11 @@ export default function WaiterClient({
                       { color: "#374151", label: "Volny" },
                     ].map(({ color, label }) => (
                       <div key={label} className="flex items-center gap-1.5">
-                        <div className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: color }} />
-                        <span className="text-xs text-gray-500">{label}</span>
+                        <div className="w-2 h-2 rounded-sm" style={{ backgroundColor: color }} />
+                        <span className="text-[10px] text-gray-500">{label}</span>
                       </div>
                     ))}
+                  </div>
                   </div>
                 </>
               )}
