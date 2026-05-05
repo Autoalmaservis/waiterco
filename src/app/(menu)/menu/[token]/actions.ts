@@ -235,7 +235,8 @@ export async function sendWaiterMessage(
     venue_id: venueId,
     session_id: session?.id ?? null,
     status: "pending",
-    reason: message.trim().slice(0, 200),
+    reason: "other",
+    custom_message: message.trim().slice(0, 300),
   })
   return { error: error?.message ?? null }
 }

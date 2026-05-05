@@ -7,6 +7,7 @@ import {
   Bell, Users, ShoppingBag, ChefHat, Clock, AlertCircle, Lock,
   X, CheckCircle2, UtensilsCrossed, Plus, Minus, Search, Trash2, Pencil,
   CreditCard, Banknote, Eye, GlassWater, Truck, Package, Phone,
+  Receipt, MessageSquare,
 } from "lucide-react"
 import {
   acknowledgeWaiterCall, resolveWaiterCall, updateOrderStatus,
@@ -340,37 +341,58 @@ export default function WaiterClient({
             <div className="max-w-2xl mx-auto px-4 pb-4 space-y-3">
               {initialCalls.length === 0 ? (
                 <EmptyState icon={Bell} text="Ziadne aktivne volania" />
-              ) : initialCalls.map(call => (
-                <div key={call.id} className="bg-gray-900 rounded-xl p-4 border"
-                  style={{ borderColor: call.status === "pending" ? "#ef4444" : "#f59e0b" }}>
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <AlertCircle size={16} style={{ color: call.status === "pending" ? "#ef4444" : "#f59e0b" }} />
-                        <span className="font-semibold text-white text-sm">{tableMap[call.table_id] ?? "Stol"}</span>
-                        <span className="text-xs px-2 py-0.5 rounded-full font-medium"
-                          style={{ backgroundColor: call.status === "pending" ? "#7f1d1d" : "#78350f", color: call.status === "pending" ? "#fca5a5" : "#fde68a" }}>
-                          {REASON_LABELS[call.reason]}
-                        </span>
+              ) : initialCalls.map(call => {
+                const isBill = call.reason === "bill"
+                const isMsg = !!call.custom_message
+                const isPending_ = call.status === "pending"
+
+                const colors = isBill
+                  ? { border: "#16a34a", badge: "#052e16", badgeText: "#4ade80", icon: "#22c55e" }
+                  : isMsg
+                    ? { border: "#2563eb", badge: "#172554", badgeText: "#93c5fd", icon: "#60a5fa" }
+                    : isPending_
+                      ? { border: "#ef4444", badge: "#7f1d1d", badgeText: "#fca5a5", icon: "#ef4444" }
+                      : { border: "#f59e0b", badge: "#78350f", badgeText: "#fde68a", icon: "#f59e0b" }
+
+                const Icon = isBill ? Receipt : isMsg ? MessageSquare : Bell
+                const typeLabel = isBill ? "Žiada o účet" : isMsg ? "Správa" : "Volá čašníka"
+
+                return (
+                  <div key={call.id} className="bg-gray-900 rounded-xl p-4 border"
+                    style={{ borderColor: colors.border }}>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <Icon size={16} style={{ color: colors.icon }} />
+                          <span className="font-bold text-white text-sm">{tableMap[call.table_id] ?? "Stôl"}</span>
+                          <span className="text-xs px-2 py-0.5 rounded-full font-semibold"
+                            style={{ backgroundColor: colors.badge, color: colors.badgeText }}>
+                            {typeLabel}
+                          </span>
+                        </div>
+                        {call.custom_message && (
+                          <div className="bg-gray-800 rounded-lg px-3 py-2 mb-1.5">
+                            <p className="text-white text-sm leading-snug">{call.custom_message}</p>
+                          </div>
+                        )}
+                        <p className="text-gray-500 text-xs" suppressHydrationWarning>{timeAgo(call.created_at)}</p>
                       </div>
-                      {call.custom_message && <p className="text-gray-400 text-xs mt-1">{call.custom_message}</p>}
-                      <p className="text-gray-500 text-xs mt-1" suppressHydrationWarning>{timeAgo(call.created_at)}</p>
-                    </div>
-                    <div className="flex gap-2 shrink-0">
-                      {call.status === "pending" && (
-                        <button onClick={() => handleAcknowledge(call.id)} disabled={isPending}
-                          className="text-xs px-3 py-1.5 rounded-lg font-medium text-yellow-300 border border-yellow-700 hover:bg-yellow-900 disabled:opacity-50">
-                          Potvrdit
+                      <div className="flex flex-col gap-1.5 shrink-0">
+                        {!isBill && !isMsg && isPending_ && (
+                          <button onClick={() => handleAcknowledge(call.id)} disabled={isPending}
+                            className="text-xs px-3 py-1.5 rounded-lg font-medium text-yellow-300 border border-yellow-700 hover:bg-yellow-900 disabled:opacity-50 whitespace-nowrap">
+                            Idem
+                          </button>
+                        )}
+                        <button onClick={() => handleResolve(call.id)} disabled={isPending}
+                          className="text-xs px-3 py-1.5 rounded-lg font-medium text-green-300 border border-green-700 hover:bg-green-900 disabled:opacity-50 whitespace-nowrap">
+                          Vyriešené
                         </button>
-                      )}
-                      <button onClick={() => handleResolve(call.id)} disabled={isPending}
-                        className="text-xs px-3 py-1.5 rounded-lg font-medium text-green-300 border border-green-700 hover:bg-green-900 disabled:opacity-50">
-                        Vyriesit
-                      </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </div>
         )}
