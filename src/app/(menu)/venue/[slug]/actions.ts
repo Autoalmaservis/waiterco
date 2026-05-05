@@ -53,6 +53,10 @@ export async function placeDeliveryOrder(
   if (items.length === 0) return { error: "Košík je prázdny.", orderId: null }
 
   const admin = createAdminClient()
+
+  const { data: venue } = await admin.from("venues").select("is_open").eq("id", venueId).single()
+  if (!venue?.is_open) return { error: "Prevádzka je momentálne zatvorená.", orderId: null }
+
   const tableId = await getOrCreateVirtualTable(venueId, deliveryInfo.type)
   if (!tableId) return { error: "Interná chyba. Skúste znova.", orderId: null }
 

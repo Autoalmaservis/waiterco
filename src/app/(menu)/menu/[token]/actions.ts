@@ -41,6 +41,9 @@ export async function placeCustomerOrder(
 
   const admin = createAdminClient()
 
+  const { data: venue } = await admin.from("venues").select("is_open").eq("id", venueId).single()
+  if (!venue?.is_open) return { error: "Prevádzka je momentálne zatvorená.", sessionId: null, shareToken: null }
+
   const { data: existingSession } = await admin
     .from("table_sessions")
     .select("id, share_token")
