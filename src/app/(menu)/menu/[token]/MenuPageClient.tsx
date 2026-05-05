@@ -594,9 +594,9 @@ export default function MenuPageClient({
           {view === "orders" ? (
             <button
               onClick={() => setView("categories")}
-              className="w-12 rounded-2xl flex flex-col items-center justify-center gap-1 bg-black/20 hover:bg-black/30 active:bg-black/35 transition-colors shrink-0"
+              className="w-10 rounded-2xl flex flex-col items-center justify-center gap-1 bg-black/20 hover:bg-black/30 active:bg-black/35 transition-colors shrink-0"
             >
-              <UtensilsCrossed size={20} className="text-white" />
+              <UtensilsCrossed size={18} className="text-white" />
               <span className="text-[9px] text-white/80 font-medium leading-none">Menu</span>
             </button>
           ) : (() => {
@@ -606,7 +606,7 @@ export default function MenuPageClient({
             return (
               <button
                 onClick={() => sessionId && setView("orders")}
-                className="w-12 rounded-2xl flex flex-col items-center justify-center gap-1 bg-black/20 hover:bg-black/30 active:bg-black/35 transition-colors shrink-0"
+                className="w-10 rounded-2xl flex flex-col items-center justify-center gap-1 bg-black/20 hover:bg-black/30 active:bg-black/35 transition-colors shrink-0"
               >
                 {!sessionId || trackingOrders.length === 0
                   ? <Receipt size={20} className="text-white/50" />
@@ -628,10 +628,10 @@ export default function MenuPageClient({
               setPaymentSheetOpen(true)
             }}
             disabled={!sessionId || grandTotal === 0 || sessionStatus === "closed"}
-            className="w-12 rounded-2xl flex flex-col items-center justify-center gap-1 bg-black/20 hover:bg-black/30 active:bg-black/35 transition-colors shrink-0 disabled:opacity-40"
+            className="w-10 rounded-2xl flex flex-col items-center justify-center gap-1 bg-black/20 hover:bg-black/30 active:bg-black/35 transition-colors shrink-0 disabled:opacity-40"
           >
-            <Euro size={20} className="text-white" />
-            <span className="text-[9px] text-white/70 font-medium leading-none">{t.payment}</span>
+            <Euro size={16} className="text-white" />
+            <span className="text-[8px] text-white/70 font-medium leading-none">{t.payment}</span>
           </button>
 
           {/* Slot 3: cart or bill request (in orders view) */}
@@ -680,19 +680,33 @@ export default function MenuPageClient({
           {/* Slot 4: star rating / reviews */}
           <button
             onClick={() => setReviewsOpen(true)}
-            className="w-12 rounded-2xl flex flex-col items-center justify-center gap-1 bg-black/20 hover:bg-black/30 active:bg-black/35 transition-colors shrink-0"
+            className="w-10 rounded-2xl flex flex-col items-center justify-center gap-1 bg-black/20 hover:bg-black/30 active:bg-black/35 transition-colors shrink-0"
           >
             {venue.avg_rating !== null && venue.review_count > 0 ? (
               <>
-                <Star size={18} fill="white" className="text-white" />
-                <span className="text-[10px] text-white font-bold leading-none">{venue.avg_rating.toFixed(1)}</span>
+                <Star size={16} fill="white" className="text-white" />
+                <span className="text-[9px] text-white font-bold leading-none">{venue.avg_rating.toFixed(1)}</span>
               </>
             ) : (
               <>
-                <Star size={18} className="text-white/60" />
-                <span className="text-[9px] text-white/60 font-medium leading-none">Hodnotiť</span>
+                <Star size={16} className="text-white/60" />
+                <span className="text-[8px] text-white/60 font-medium leading-none">Hod.</span>
               </>
             )}
+          </button>
+
+          {/* Slot 5: waiter actions */}
+          <button
+            onClick={() => { setWaiterSheetOpen(true); setWaiterSheetMsgOpen(false); setWaiterMessage("") }}
+            className="w-10 rounded-2xl flex flex-col items-center justify-center gap-1 bg-black/20 hover:bg-black/30 active:bg-black/35 transition-colors shrink-0"
+          >
+            <Bell
+              size={16}
+              className={`${waiterCallState === "done" ? "text-green-300" : "text-white"} ${waiterCallState === "pending" ? "animate-pulse" : ""}`}
+            />
+            <span className="text-[8px] text-white/70 font-medium leading-none">
+              {waiterCallState === "done" ? "Ide!" : "Čašník"}
+            </span>
           </button>
 
         </div>
@@ -752,21 +766,6 @@ export default function MenuPageClient({
                   )}
                 </div>
               )}
-
-              {/* Call waiter */}
-              <button
-                onClick={async () => { setUserMenuOpen(false); await handleCallWaiter() }}
-                disabled={waiterCallState === "pending"}
-                className="w-full flex items-center justify-between px-4 py-3.5 rounded-2xl bg-gray-50 hover:bg-gray-100 active:bg-gray-200 transition-colors disabled:opacity-60"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ backgroundColor: `${brandColor}18` }}>
-                    <Bell size={18} style={{ color: brandColor }} />
-                  </div>
-                  <span className="font-medium text-gray-900 text-sm">{t.callWaiter}</span>
-                </div>
-                {waiterCallState === "done" && <CheckCircle2 size={16} className="text-green-500" />}
-              </button>
 
               {/* Language toggle */}
               <button
