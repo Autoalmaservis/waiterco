@@ -36,6 +36,7 @@ const nextStatusOptions: Record<OrderStatus, OrderStatus[]> = {
 }
 
 type Period = "today" | "week" | "month"
+type OrderTypeFilter = "all" | "dine_in" | "delivery" | "takeaway"
 
 interface VenueOption { id: string; name: string; type: VenueType; is_active: boolean }
 interface OrderItemRow { id: string; order_id: string; name: string; quantity: number; unit_price: number; total_price: number; status: string }
@@ -65,6 +66,7 @@ export default function OrdersClient({ orders, venues, tableMap, orderItems }: P
   const [isPending, startTransition] = useTransition()
   const [statusFilter, setStatusFilter] = useState<OrderStatus | "all">("all")
   const [venueFilter, setVenueFilter] = useState<string>("all")
+  const [orderTypeFilter, setOrderTypeFilter] = useState<OrderTypeFilter>("all")
   const [period, setPeriod] = useState<Period>("month")
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
@@ -81,6 +83,7 @@ export default function OrdersClient({ orders, venues, tableMap, orderItems }: P
     if (new Date(o.created_at) < cutoff) return false
     if (statusFilter !== "all" && o.status !== statusFilter) return false
     if (venueFilter !== "all" && o.venue_id !== venueFilter) return false
+    if (orderTypeFilter !== "all" && (o as any).order_type !== orderTypeFilter) return false
     return true
   })
 
@@ -123,6 +126,16 @@ export default function OrdersClient({ orders, venues, tableMap, orderItems }: P
               </button>
             ))}
           </div>
+
+          {/* Order type filter */}
+          <select value={orderTypeFilter}
+            onChange={(e) => setOrderTypeFilter(e.target.value as OrderTypeFilter)}
+            className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-400">
+            <option value="all">Všetky typy</option>
+            <option value="dine_in">QR / Stôl</option>
+            <option value="delivery">Donáška</option>
+            <option value="takeaway">Takeaway</option>
+          </select>
 
           {/* Status filter */}
           <div className="flex items-center gap-1.5">
