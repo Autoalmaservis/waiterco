@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useTransition } from "react"
+import { useState, useTransition, Fragment } from "react"
 import { useRouter } from "next/navigation"
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu"
 import { ChevronDown, ChevronRight, Filter, Info, Truck, Package } from "lucide-react"
@@ -193,8 +193,8 @@ export default function OrdersClient({ orders, venues, tableMap, orderItems }: P
                 const items = itemsByOrderId[order.id] ?? []
                 const colSpan = venues.length > 1 ? 7 : 6
                 return (
-                  <>
-                    <tr key={order.id}
+                  <Fragment key={order.id}>
+                    <tr
                       className="hover:bg-gray-50 transition-colors cursor-pointer"
                       onClick={() => setExpandedId(isExpanded ? null : order.id)}
                     >
@@ -289,7 +289,7 @@ export default function OrdersClient({ orders, venues, tableMap, orderItems }: P
                         </td>
                       </tr>
                     )}
-                  </>
+                  </Fragment>
                 )
               })}
             </tbody>
