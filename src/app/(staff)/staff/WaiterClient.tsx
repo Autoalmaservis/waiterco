@@ -132,7 +132,9 @@ export default function WaiterClient({
       .on("postgres_changes", { event: "*", schema: "public", table: "orders", filter: `venue_id=eq.${venueId}` }, () => { if (mounted) router.refresh() })
       .on("postgres_changes", { event: "*", schema: "public", table: "table_sessions", filter: `venue_id=eq.${venueId}` }, () => { if (mounted) router.refresh() })
       .subscribe()
-    return () => { mounted = false; supabase.removeChannel(channel) }
+    // Polling fallback every 15 s in case the websocket drops (common on mobile)
+    const poll = setInterval(() => { if (mounted) router.refresh() }, 15000)
+    return () => { mounted = false; supabase.removeChannel(channel); clearInterval(poll) }
   }, [venueId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleAcknowledge(id: string) {
