@@ -634,48 +634,27 @@ export default function MenuPageClient({
             <span className="text-[8px] text-white/70 font-medium leading-none">{t.payment}</span>
           </button>
 
-          {/* Slot 3: cart or bill request (in orders view) */}
-          {view === "orders" ? (
-            billState === "done" ? (
-              <div className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-white/15">
-                <CheckCircle2 size={16} className="text-green-300" />
-                <span className="font-semibold text-sm text-white">{t.billRequested}</span>
-              </div>
-            ) : (
-              <button
-                onClick={handleBillRequest}
-                disabled={billState === "pending" || !sessionId}
-                className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-white active:scale-[0.98] transition-all disabled:opacity-70"
+          {/* Slot 3: cart (always) */}
+          <button
+            onClick={() => cartCount > 0 && setCartOpen(true)}
+            disabled={cartCount === 0}
+            className="flex-1 flex items-center justify-between px-4 py-3.5 rounded-2xl bg-white active:scale-[0.98] transition-all disabled:opacity-70"
+          >
+            <div className="flex items-center gap-2">
+              <div
+                className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black text-white transition-transform duration-200 ${flashItemId ? "scale-125" : ""}`}
+                style={{ backgroundColor: cartCount > 0 ? brandColor : "#9ca3af" }}
               >
-                {billState === "pending"
-                  ? <Loader2 size={16} className="animate-spin" style={{ color: brandColor }} />
-                  : <Receipt size={16} style={{ color: brandColor }} />
-                }
-                <span className="font-semibold text-sm text-gray-900">{t.requestBill}</span>
-              </button>
-            )
-          ) : (
-            <button
-              onClick={() => cartCount > 0 && setCartOpen(true)}
-              disabled={cartCount === 0}
-              className="flex-1 flex items-center justify-between px-4 py-3.5 rounded-2xl bg-white active:scale-[0.98] transition-all disabled:opacity-70"
-            >
-              <div className="flex items-center gap-2">
-                <div
-                  className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black text-white transition-transform duration-200 ${flashItemId ? "scale-125" : ""}`}
-                  style={{ backgroundColor: cartCount > 0 ? brandColor : "#9ca3af" }}
-                >
-                  {cartCount}
-                </div>
-                <span className={`font-semibold text-sm ${cartCount > 0 ? "text-gray-900" : "text-gray-400"}`}>
-                  {cartCount === 0 ? "Košík je prázdny" : t.viewCart}
-                </span>
+                {cartCount}
               </div>
-              <span className="font-black text-sm" style={{ color: cartCount > 0 ? brandColor : "#9ca3af" }}>
-                {formatCurrency(cartTotal, venue.currency)}
+              <span className={`font-semibold text-sm ${cartCount > 0 ? "text-gray-900" : "text-gray-400"}`}>
+                {cartCount === 0 ? "Košík je prázdny" : t.viewCart}
               </span>
-            </button>
-          )}
+            </div>
+            <span className="font-black text-sm" style={{ color: cartCount > 0 ? brandColor : "#9ca3af" }}>
+              {formatCurrency(cartTotal, venue.currency)}
+            </span>
+          </button>
 
           {/* Slot 4: star rating / reviews */}
           <button
@@ -1411,8 +1390,8 @@ function CartDrawer({ cart, brandColor, currency, total, notes, t, onNotesChange
   onClose: () => void; onPlaceOrder: () => void; isPending: boolean; error: string | null
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50" onClick={onClose}>
-      <div className="bg-white w-full max-w-md rounded-t-3xl max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={onClose}>
+      <div className="bg-white w-full max-w-md rounded-3xl max-h-[82vh] flex flex-col" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-gray-100">
           <h2 className="font-bold text-gray-900 text-lg">{t.cart}</h2>
           <button onClick={onClose} className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
