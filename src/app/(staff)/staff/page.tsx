@@ -87,7 +87,7 @@ export default async function StaffPage() {
   if (activeSessionIds.length > 0) {
     const { data } = await supabase
       .from("orders")
-      .select("id, session_id, table_id, order_number, round_number, status, total_amount, notes, created_at")
+      .select("id, session_id, table_id, order_number, round_number, status, total_amount, notes, created_at, order_type, customer_name, customer_phone, delivery_address")
       .in("session_id", activeSessionIds)
       .neq("status", "cancelled")
       .order("created_at", { ascending: true })

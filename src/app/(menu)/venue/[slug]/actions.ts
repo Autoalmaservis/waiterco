@@ -76,13 +76,7 @@ export async function placeDeliveryOrder(
   const orderNumber = String(isNaN(lastNum) ? 1 : lastNum + 1).padStart(3, "0")
   const totalAmount = items.reduce((s, i) => s + i.unitPrice * i.quantity, 0)
 
-  const typeLabel = deliveryInfo.type === "delivery" ? "DONÁŠKA" : "TAKEAWAY"
-  const infoLine = deliveryInfo.type === "delivery"
-    ? `[${typeLabel}] ${deliveryInfo.customerName} | ${deliveryInfo.phone} | ${deliveryInfo.address ?? ""}`
-    : `[${typeLabel}] ${deliveryInfo.customerName} | ${deliveryInfo.phone}`
-  const fullNotes = [infoLine, deliveryInfo.notes].filter(Boolean).join(" | ")
-
-  const { data: order, error: oErr } = await admin
+  const { data: order, error: oErr } = await (admin as any)
     .from("orders")
     .insert({
       session_id: sessionId,
@@ -92,7 +86,11 @@ export async function placeDeliveryOrder(
       round_number: 1,
       status: "pending",
       total_amount: totalAmount,
-      notes: fullNotes,
+      notes: deliveryInfo.notes || null,
+      order_type: deliveryInfo.type,
+      customer_name: deliveryInfo.customerName,
+      customer_phone: deliveryInfo.phone,
+      delivery_address: deliveryInfo.address || null,
     })
     .select("id")
     .single()

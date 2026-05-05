@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/client"
 import {
   Bell, Users, ShoppingBag, ChefHat, Clock, AlertCircle, Lock,
   X, CheckCircle2, UtensilsCrossed, Plus, Minus, Search, Trash2, Pencil,
-  CreditCard, Banknote, Eye, GlassWater,
+  CreditCard, Banknote, Eye, GlassWater, Truck, Package, Phone,
 } from "lucide-react"
 import {
   acknowledgeWaiterCall, resolveWaiterCall, updateOrderStatus,
@@ -26,6 +26,7 @@ type SessionRow = {
 type OrderRow = {
   id: string; session_id: string; table_id: string; order_number: string; round_number: number
   status: OrderStatus; total_amount: number; notes: string | null; created_at: string
+  order_type?: string; customer_name?: string; customer_phone?: string; delivery_address?: string
 }
 type OrderItemRow = {
   id: string; order_id: string; item_id: string | null; name: string; quantity: number
@@ -462,9 +463,12 @@ export default function WaiterClient({
                     const allPaid = items.length > 0 && items.every(i => isItemPaid(i))
                     const kitchenDone = kitchenItems.length > 0 && kitchenItems.every(i => i.status === "ready" || i.status === "delivered")
                     const barDone = barItems.length > 0 && barItems.every(i => i.status === "ready" || i.status === "delivered")
-                    const borderColor = isOrderDelivered ? "border-teal-800" : "border-gray-800"
+                    const isDelivOrder = order.order_type === "delivery"
+                    const isTakeOrder = order.order_type === "takeaway"
+                    const borderColor = isOrderDelivered ? "border-teal-800" : isDelivOrder ? "border-orange-600" : isTakeOrder ? "border-blue-600" : "border-gray-800"
+                    const bgColor = isOrderDelivered ? "bg-teal-950/40" : isDelivOrder ? "bg-orange-950/40" : isTakeOrder ? "bg-blue-950/40" : "bg-gray-900"
                     return (
-                      <div key={order.id} className={`rounded-xl border overflow-hidden ${isOrderDelivered ? "bg-teal-950/40" : "bg-gray-900"} ${borderColor}`}>
+                      <div key={order.id} className={`rounded-xl border overflow-hidden ${bgColor} ${borderColor}`}>
                         <div className={`flex items-center justify-between px-4 py-2.5 border-b ${borderColor}`}>
                           <div className="flex items-center gap-2">
                             <ChefHat size={14} className="text-orange-400" />
@@ -484,6 +488,16 @@ export default function WaiterClient({
                             )}
                           </div>
                         </div>
+
+                        {/* Customer info row for delivery/takeaway */}
+                        {(isDelivOrder || isTakeOrder) && order.customer_name && (
+                          <div className={`flex items-center gap-2 px-4 py-2 border-b text-xs ${isDelivOrder ? "bg-orange-950/30 border-orange-800/50 text-orange-300" : "bg-blue-950/30 border-blue-800/50 text-blue-300"}`}>
+                            <Phone size={11} className="shrink-0" />
+                            <span className="font-medium shrink-0">{order.customer_name}</span>
+                            {order.customer_phone && <span className="opacity-70 shrink-0">· {order.customer_phone}</span>}
+                            {isDelivOrder && order.delivery_address && <span className="opacity-60 truncate">· {order.delivery_address}</span>}
+                          </div>
+                        )}
 
                         {/* Delivered order: show all items as readonly (awaiting payment) */}
                         {isOrderDelivered && (
@@ -609,8 +623,10 @@ export default function WaiterClient({
                     const isReadyWaiterPending = isReady && hasWaiterPending
                     const waiterItems = orderItems.filter(i => i.station === "waiter" && i.status !== "cancelled")
                     const kitchenBarItems = orderItems.filter(i => (i.station === "kitchen" || i.station === "bar") && i.status !== "cancelled")
-                    const borderColor = isReadyWaiterPending ? "border-orange-800" : isReady ? "border-green-700" : isDelivered ? "border-teal-800" : "border-gray-800"
-                    const bgColor = isReady && !isReadyWaiterPending ? "bg-green-950/60" : isDelivered ? "bg-teal-950/50" : "bg-gray-900"
+                    const isDelivOrder = order.order_type === "delivery"
+                    const isTakeOrder = order.order_type === "takeaway"
+                    const borderColor = isDelivOrder ? "border-orange-600" : isTakeOrder ? "border-blue-600" : isReadyWaiterPending ? "border-orange-800" : isReady ? "border-green-700" : isDelivered ? "border-teal-800" : "border-gray-800"
+                    const bgColor = isDelivered ? "bg-teal-950/50" : isReady && !isReadyWaiterPending ? "bg-green-950/60" : isDelivOrder ? "bg-orange-950/40" : isTakeOrder ? "bg-blue-950/40" : "bg-gray-900"
                     return (
                       <div key={order.id} className={`rounded-xl border overflow-hidden ${bgColor} ${borderColor}`}>
                         {/* Header */}
@@ -623,9 +639,15 @@ export default function WaiterClient({
                             {isWaiting && <span className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse" />}
                             <span className="font-bold text-white text-sm">#{order.order_number}</span>
                           </div>
-                          {/* Center: table name + status + time */}
+                          {/* Center: table / delivery type + status + time */}
                           <div className="flex-1 flex items-center justify-center gap-2">
-                            <span className="font-black text-white text-base">{tableMap[order.table_id] ?? "Stôl"}</span>
+                            {isDelivOrder ? (
+                              <span className="flex items-center gap-1 font-black text-orange-400 text-base"><Truck size={13} />Donáška</span>
+                            ) : isTakeOrder ? (
+                              <span className="flex items-center gap-1 font-black text-blue-400 text-base"><Package size={13} />Takeaway</span>
+                            ) : (
+                              <span className="font-black text-white text-base">{tableMap[order.table_id] ?? "Stôl"}</span>
+                            )}
                             <OrderStatusBadge status={order.status} />
                             <span className="text-gray-600 text-xs" suppressHydrationWarning>{timeAgo(order.created_at)}</span>
                           </div>
@@ -636,6 +658,16 @@ export default function WaiterClient({
                             </button>
                           )}
                         </div>
+
+                        {/* Customer info for delivery/takeaway */}
+                        {(isDelivOrder || isTakeOrder) && order.customer_name && (
+                          <div className={`flex items-center gap-2 px-3 py-1.5 border-b text-xs truncate ${isDelivOrder ? "bg-orange-950/30 border-orange-800/50 text-orange-300" : "bg-blue-950/30 border-blue-800/50 text-blue-300"}`}>
+                            <Phone size={11} className="shrink-0" />
+                            <span className="font-medium truncate">{order.customer_name}</span>
+                            {order.customer_phone && <span className="opacity-70 shrink-0">· {order.customer_phone}</span>}
+                            {isDelivOrder && order.delivery_address && <span className="opacity-60 truncate">· {order.delivery_address}</span>}
+                          </div>
+                        )}
 
                         {/* Two-column items */}
                         <div className="grid grid-cols-2 divide-x divide-gray-800/70">
