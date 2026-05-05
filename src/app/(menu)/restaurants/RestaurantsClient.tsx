@@ -231,6 +231,9 @@ function QRScannerModal({ onClose }: { onClose: () => void }) {
 
   useEffect(() => { return () => stopCamera() }, [stopCamera])
 
+  // Start camera after video element is in DOM (mode="scanning" renders it)
+  const streamPendingRef = useRef<MediaStream | null>(null)
+
   useEffect(() => {
     async function start() {
       const hasBarcodeDetector = "BarcodeDetector" in window
@@ -240,37 +243,11 @@ function QRScannerModal({ onClose }: { onClose: () => void }) {
 
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } },
+          video: { facingMode: { ideal: "environment" } },
         })
         streamRef.current = stream
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream
-          await videoRef.current.play()
-        }
-        setMode("scanning")
-
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const detector = new (window as any).BarcodeDetector({ formats: ["qr_code"] })
-        const scan = async () => {
-          if (!videoRef.current || videoRef.current.readyState < 2) {
-            rafRef.current = requestAnimationFrame(scan); return
-          }
-          try {
-            const barcodes = await detector.detect(videoRef.current)
-            if (barcodes.length > 0) {
-              const raw = barcodes[0].rawValue as string
-              stopCamera(); onClose()
-              try {
-                const url = new URL(raw)
-                if (url.pathname.startsWith("/menu/")) router.push(url.pathname)
-                else window.location.href = raw
-              } catch { window.location.href = raw }
-              return
-            }
-          } catch { /* ignore frame errors */ }
-          rafRef.current = requestAnimationFrame(scan)
-        }
-        rafRef.current = requestAnimationFrame(scan)
+        streamPendingRef.current = stream
+        setMode("scanning") // renders video element, then next effect attaches stream
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : ""
         setErrorMsg(
@@ -282,7 +259,41 @@ function QRScannerModal({ onClose }: { onClose: () => void }) {
       }
     }
     start()
-  }, [router, stopCamera, onClose])
+  }, [])
+
+  // Once video element is in DOM, attach stream and start scanning
+  useEffect(() => {
+    if (mode !== "scanning" || !videoRef.current || !streamPendingRef.current) return
+    const video = videoRef.current
+    const stream = streamPendingRef.current
+    streamPendingRef.current = null
+
+    video.srcObject = stream
+    video.play().catch(() => {})
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const detector = new (window as any).BarcodeDetector({ formats: ["qr_code"] })
+    const scan = async () => {
+      if (!video || video.readyState < 2) {
+        rafRef.current = requestAnimationFrame(scan); return
+      }
+      try {
+        const barcodes = await detector.detect(video)
+        if (barcodes.length > 0) {
+          const raw = barcodes[0].rawValue as string
+          stopCamera(); onClose()
+          try {
+            const url = new URL(raw)
+            if (url.pathname.startsWith("/menu/")) router.push(url.pathname)
+            else window.location.href = raw
+          } catch { window.location.href = raw }
+          return
+        }
+      } catch { /* ignore frame errors */ }
+      rafRef.current = requestAnimationFrame(scan)
+    }
+    rafRef.current = requestAnimationFrame(scan)
+  }, [mode, router, stopCamera, onClose])
 
   return (
     <div className="fixed inset-0 z-50 bg-black flex flex-col">
