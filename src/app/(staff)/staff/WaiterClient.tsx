@@ -189,13 +189,27 @@ export default function WaiterClient({
     ...initialOrders.map(o => o.table_id),
   ])
   const filterableTables = initialTables.filter(t => activeTableIds.has(t.id))
+  const orderPriority = (order: OrderRow): number => {
+    if (order.status === "delivered" || order.status === "cancelled") return 3
+    const its = initialItems.filter(i => i.order_id === order.id)
+    const hasKBPending = its.some(i =>
+      (i.station === "kitchen" || i.station === "bar") &&
+      i.status !== "ready" && i.status !== "delivered" && i.status !== "cancelled"
+    )
+    const hasWaiterPending = its.some(i =>
+      i.station === "waiter" &&
+      i.status !== "ready" && i.status !== "delivered" && i.status !== "cancelled"
+    )
+    if (waiterNextStatus(order.status, hasKBPending, hasWaiterPending) !== null) return 1
+    return 2
+  }
   const filteredOrders = (tableFilter === "all"
     ? initialOrders
     : initialOrders.filter(o => o.table_id === tableFilter)
   ).slice().sort((a, b) => {
-    const aD = a.status === "delivered" ? 1 : 0
-    const bD = b.status === "delivered" ? 1 : 0
-    if (aD !== bD) return aD - bD
+    const pa = orderPriority(a)
+    const pb = orderPriority(b)
+    if (pa !== pb) return pa - pb
     return new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
   })
 
