@@ -614,17 +614,24 @@ export default function WaiterClient({
                     return (
                       <div key={order.id} className={`rounded-xl border overflow-hidden ${bgColor} ${borderColor}`}>
                         {/* Header */}
-                        <div className="relative flex items-center justify-center gap-2 px-4 py-2.5 border-b border-gray-800/70 flex-wrap">
-                          {isReadyWaiterPending && <span className="w-2 h-2 rounded-full bg-orange-400 animate-pulse shrink-0" />}
-                          {isReady && !isReadyWaiterPending && <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse shrink-0" />}
-                          {isDelivered && <span className="w-2 h-2 rounded-full bg-teal-400 shrink-0" />}
-                          {isWaiting && <span className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse shrink-0" />}
-                          <span className="font-bold text-white text-sm">#{order.order_number}</span>
-                          <span className="font-black text-white text-base">{tableMap[order.table_id] ?? "Stôl"}</span>
-                          <OrderStatusBadge status={order.status} />
-                          <span className="text-gray-600 text-xs" suppressHydrationWarning>{timeAgo(order.created_at)}</span>
+                        <div className="relative flex items-center px-4 py-2.5 border-b border-gray-800/70">
+                          {/* Left: order number */}
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            {isReadyWaiterPending && <span className="w-2 h-2 rounded-full bg-orange-400 animate-pulse" />}
+                            {isReady && !isReadyWaiterPending && <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />}
+                            {isDelivered && <span className="w-2 h-2 rounded-full bg-teal-400" />}
+                            {isWaiting && <span className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse" />}
+                            <span className="font-bold text-white text-sm">#{order.order_number}</span>
+                          </div>
+                          {/* Center: table name + status + time */}
+                          <div className="flex-1 flex items-center justify-center gap-2">
+                            <span className="font-black text-white text-base">{tableMap[order.table_id] ?? "Stôl"}</span>
+                            <OrderStatusBadge status={order.status} />
+                            <span className="text-gray-600 text-xs" suppressHydrationWarning>{timeAgo(order.created_at)}</span>
+                          </div>
+                          {/* Right: edit button */}
                           {!isDelivered && (
-                            <button onClick={() => setEditOrderId(order.id)} className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-lg hover:bg-gray-700/50 text-gray-600 hover:text-white">
+                            <button onClick={() => setEditOrderId(order.id)} className="shrink-0 p-1.5 rounded-lg hover:bg-gray-700/50 text-gray-600 hover:text-white">
                               <Pencil size={13} />
                             </button>
                           )}
