@@ -217,6 +217,29 @@ export async function callWaiter(
   return { error: error?.message ?? null }
 }
 
+export async function sendWaiterMessage(
+  tableId: string,
+  venueId: string,
+  message: string
+): Promise<{ error: string | null }> {
+  const admin = createAdminClient()
+  const { data: session } = await admin
+    .from("table_sessions")
+    .select("id")
+    .eq("table_id", tableId)
+    .eq("status", "active")
+    .limit(1)
+    .single()
+  const { error } = await (admin as any).from("waiter_calls").insert({
+    table_id: tableId,
+    venue_id: venueId,
+    session_id: session?.id ?? null,
+    status: "pending",
+    reason: message.trim().slice(0, 200),
+  })
+  return { error: error?.message ?? null }
+}
+
 export async function submitReview(
   venueId: string,
   sessionId: string | null,

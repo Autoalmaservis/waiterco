@@ -4,13 +4,14 @@ import { useState, useTransition, useRef, useEffect, useCallback } from "react"
 import {
   Bell, ShoppingCart, X, Plus, Minus, ChevronRight, Star,
   AlertTriangle, Tag, Coffee, CheckCircle2, Check, ChevronDown,
-  ArrowLeft, Receipt, Share2, Globe, Clock, Loader2, User,
+  ArrowLeft, Receipt, Share2, Globe, Clock, Loader2, User, MessageSquare,
+  UtensilsCrossed,
 } from "lucide-react"
 import { formatCurrency } from "@/lib/utils"
 import { getCategoryEmoji } from "@/lib/category-emoji"
 import {
   placeCustomerOrder, callWaiter, getSessionOrders, requestBill, submitReview,
-  type TrackingOrder,
+  sendWaiterMessage, type TrackingOrder,
 } from "./actions"
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -140,6 +141,10 @@ export default function MenuPageClient({
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [pressId, setPressId] = useState<string | null>(null)
   const [flyParticle, setFlyParticle] = useState<{ fromX: number; fromY: number; toX: number; toY: number } | null>(null)
+  const [waiterSheetOpen, setWaiterSheetOpen] = useState(false)
+  const [waiterSheetMsgOpen, setWaiterSheetMsgOpen] = useState(false)
+  const [waiterMessage, setWaiterMessage] = useState("")
+  const [billState, setBillState] = useState<"idle" | "pending" | "done">("idle")
   const cartBtnRef = useRef<HTMLButtonElement>(null)
   const [ratingDone, setRatingDone] = useState(false)
   const prevSessionStatus = useRef(initialSessionStatus)
@@ -328,6 +333,14 @@ export default function MenuPageClient({
     const { error } = await callWaiter(table.id, venue.id)
     setWaiterCallState(error ? "error" : "done")
     setTimeout(() => setWaiterCallState("idle"), 3000)
+  }
+
+  async function handleBillRequest() {
+    setBillState("pending")
+    await requestBill(table.id, venue.id, sessionId)
+    setBillState("done")
+    setWaiterSheetOpen(false)
+    if (!ratingDone) setTimeout(() => setRatingOpen(true), 700)
   }
 
   const t = T[lang]
@@ -573,8 +586,16 @@ export default function MenuPageClient({
       <div className="fixed bottom-0 left-0 right-0 z-40 px-3 pt-3 pb-6" style={{ backgroundColor: brandColor }}>
         <div className="max-w-md mx-auto flex items-stretch gap-2">
 
-          {/* Left: order progress */}
-          {(() => {
+          {/* Left: order progress / back-to-menu */}
+          {view === "orders" ? (
+            <button
+              onClick={() => setView("categories")}
+              className="w-14 rounded-2xl flex flex-col items-center justify-center gap-1 bg-black/20 hover:bg-black/30 active:bg-black/35 transition-colors shrink-0"
+            >
+              <UtensilsCrossed size={20} className="text-white" />
+              <span className="text-[9px] text-white/80 font-medium leading-none">Menu</span>
+            </button>
+          ) : (() => {
             const allItems = trackingOrders.flatMap(o => o.items).filter(i => i.status !== "delivered" && i.status !== "cancelled")
             const hasReady = allItems.some(i => i.status === "ready")
             const hasPreparing = allItems.some(i => i.status === "preparing" || i.status === "confirmed")
@@ -596,33 +617,53 @@ export default function MenuPageClient({
             )
           })()}
 
-          {/* Center: cart */}
-          <button
-            onClick={() => cartCount > 0 && setCartOpen(true)}
-            disabled={cartCount === 0}
-            className="flex-1 flex items-center justify-between px-4 py-3.5 rounded-2xl bg-white active:scale-[0.98] transition-all disabled:opacity-70"
-          >
-            <div className="flex items-center gap-2">
-              <div
-                className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black text-white transition-transform duration-200 ${flashItemId ? "scale-125" : ""}`}
-                style={{ backgroundColor: cartCount > 0 ? brandColor : "#9ca3af" }}
-              >
-                {cartCount}
+          {/* Center: cart or bill request (in orders view) */}
+          {view === "orders" ? (
+            billState === "done" ? (
+              <div className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-white/15">
+                <CheckCircle2 size={16} className="text-green-300" />
+                <span className="font-semibold text-sm text-white">{t.billRequested}</span>
               </div>
-              <span className={`font-semibold text-sm ${cartCount > 0 ? "text-gray-900" : "text-gray-400"}`}>
-                {cartCount === 0 ? "Košík je prázdny" : t.viewCart}
+            ) : (
+              <button
+                onClick={handleBillRequest}
+                disabled={billState === "pending" || !sessionId}
+                className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-white active:scale-[0.98] transition-all disabled:opacity-70"
+              >
+                {billState === "pending"
+                  ? <Loader2 size={16} className="animate-spin" style={{ color: brandColor }} />
+                  : <Receipt size={16} style={{ color: brandColor }} />
+                }
+                <span className="font-semibold text-sm text-gray-900">{t.requestBill}</span>
+              </button>
+            )
+          ) : (
+            <button
+              onClick={() => cartCount > 0 && setCartOpen(true)}
+              disabled={cartCount === 0}
+              className="flex-1 flex items-center justify-between px-4 py-3.5 rounded-2xl bg-white active:scale-[0.98] transition-all disabled:opacity-70"
+            >
+              <div className="flex items-center gap-2">
+                <div
+                  className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black text-white transition-transform duration-200 ${flashItemId ? "scale-125" : ""}`}
+                  style={{ backgroundColor: cartCount > 0 ? brandColor : "#9ca3af" }}
+                >
+                  {cartCount}
+                </div>
+                <span className={`font-semibold text-sm ${cartCount > 0 ? "text-gray-900" : "text-gray-400"}`}>
+                  {cartCount === 0 ? "Košík je prázdny" : t.viewCart}
+                </span>
+              </div>
+              <span className="font-black text-sm" style={{ color: cartCount > 0 ? brandColor : "#9ca3af" }}>
+                {formatCurrency(cartTotal, venue.currency)}
               </span>
-            </div>
-            <span className="font-black text-sm" style={{ color: cartCount > 0 ? brandColor : "#9ca3af" }}>
-              {formatCurrency(cartTotal, venue.currency)}
-            </span>
-          </button>
+            </button>
+          )}
 
-          {/* Right: call waiter */}
+          {/* Right: waiter action sheet trigger */}
           <button
-            onClick={handleCallWaiter}
-            disabled={waiterCallState === "pending"}
-            className="w-14 rounded-2xl flex flex-col items-center justify-center gap-1 bg-black/20 hover:bg-black/30 active:bg-black/35 transition-colors disabled:opacity-60 shrink-0"
+            onClick={() => { setWaiterSheetOpen(true); setWaiterSheetMsgOpen(false); setWaiterMessage("") }}
+            className="w-14 rounded-2xl flex flex-col items-center justify-center gap-1 bg-black/20 hover:bg-black/30 active:bg-black/35 transition-colors shrink-0"
           >
             <Bell
               size={20}
@@ -727,6 +768,97 @@ export default function MenuPageClient({
         </div>
       )}
 
+      {/* Waiter action sheet */}
+      {waiterSheetOpen && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50"
+          onClick={() => { setWaiterSheetOpen(false); setWaiterSheetMsgOpen(false); setWaiterMessage("") }}>
+          <div className="bg-white w-full max-w-md rounded-t-3xl" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-center pt-3 pb-1">
+              <div className="w-10 h-1 rounded-full bg-gray-200" />
+            </div>
+            <div className="px-5 pt-2 pb-8 space-y-2">
+              <p className="text-center text-sm font-semibold text-gray-400 mb-3">Čo potrebujete?</p>
+
+              {/* Call waiter */}
+              <button
+                onClick={async () => { await handleCallWaiter(); setWaiterSheetOpen(false) }}
+                disabled={waiterCallState === "pending"}
+                className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl bg-gray-50 active:bg-gray-100 transition-colors disabled:opacity-60"
+              >
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: `${brandColor}18` }}>
+                  <Bell size={20} style={{ color: brandColor }} />
+                </div>
+                <div className="text-left">
+                  <p className="font-semibold text-gray-900 text-sm">{t.callWaiter}</p>
+                  <p className="text-xs text-gray-400">Čašník príde k vášmu stolu</p>
+                </div>
+                {waiterCallState === "done" && <CheckCircle2 size={18} className="text-green-500 ml-auto shrink-0" />}
+              </button>
+
+              {/* Request bill */}
+              <button
+                onClick={handleBillRequest}
+                disabled={billState === "pending"}
+                className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl bg-gray-50 active:bg-gray-100 transition-colors disabled:opacity-60"
+              >
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-green-50">
+                  <Receipt size={20} className="text-green-600" />
+                </div>
+                <div className="text-left">
+                  <p className="font-semibold text-gray-900 text-sm">{t.requestBill}</p>
+                  <p className="text-xs text-gray-400">Priniesť účet k stolu</p>
+                </div>
+                {billState === "pending" && <Loader2 size={16} className="animate-spin text-gray-400 ml-auto shrink-0" />}
+                {billState === "done" && <CheckCircle2 size={18} className="text-green-500 ml-auto shrink-0" />}
+              </button>
+
+              {/* Write message */}
+              {!waiterSheetMsgOpen ? (
+                <button
+                  onClick={() => setWaiterSheetMsgOpen(true)}
+                  className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl bg-gray-50 active:bg-gray-100 transition-colors"
+                >
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-blue-50">
+                    <MessageSquare size={20} className="text-blue-500" />
+                  </div>
+                  <div className="text-left">
+                    <p className="font-semibold text-gray-900 text-sm">Napísať správu</p>
+                    <p className="text-xs text-gray-400">Špeciálna požiadavka pre obsluhu</p>
+                  </div>
+                </button>
+              ) : (
+                <div className="rounded-2xl bg-gray-50 p-4 space-y-3">
+                  <p className="text-sm font-semibold text-gray-900">Správa pre obsluhu</p>
+                  <textarea
+                    value={waiterMessage}
+                    onChange={e => setWaiterMessage(e.target.value)}
+                    placeholder="Napr. Potrebujem detskú stoličku…"
+                    rows={3}
+                    autoFocus
+                    className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 resize-none focus:outline-none focus:ring-2"
+                    style={{ "--tw-ring-color": brandColor } as React.CSSProperties}
+                  />
+                  <button
+                    onClick={async () => {
+                      if (!waiterMessage.trim()) return
+                      await sendWaiterMessage(table.id, venue.id, waiterMessage.trim())
+                      setWaiterMessage("")
+                      setWaiterSheetMsgOpen(false)
+                      setWaiterSheetOpen(false)
+                    }}
+                    disabled={!waiterMessage.trim()}
+                    className="w-full py-3 rounded-xl text-white font-semibold text-sm disabled:opacity-40"
+                    style={{ backgroundColor: brandColor }}
+                  >
+                    Odoslať správu
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Rating modal */}
       {ratingOpen && !ratingDone && (
         <RatingModal
@@ -770,15 +902,8 @@ function OrdersView({ orders, sessionId, sessionStatus, grandTotal, shareToken, 
   tableId: string; venueId: string; brandColor: string; currency: string
   t: typeof T.sk; lang: Lang; onOrderMore: () => void
 }) {
-  const [billState, setBillState] = useState<"idle" | "pending" | "done">("idle")
   const [splitPeople, setSplitPeople] = useState(2)
   const [copied, setCopied] = useState(false)
-
-  async function handleBill() {
-    setBillState("pending")
-    await requestBill(tableId, venueId, sessionId)
-    setBillState("done")
-  }
 
   function handleShare() {
     if (!shareToken) return
@@ -798,7 +923,7 @@ function OrdersView({ orders, sessionId, sessionStatus, grandTotal, shareToken, 
   const readyCount = activeItems.filter(i => i.status === "ready").length
 
   return (
-    <div className="max-w-md mx-auto pb-36 pt-4 px-4 space-y-3">
+    <div className="max-w-md mx-auto pb-28 pt-4 px-4 space-y-3">
 
       {/* Status summary */}
       {sessionStatus === "closed" ? (
@@ -868,33 +993,16 @@ function OrdersView({ orders, sessionId, sessionStatus, grandTotal, shareToken, 
         </div>
       )}
 
-      {/* Bottom actions */}
+      {/* Order more */}
       {sessionStatus === "active" && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-4 py-4 space-y-2">
-          <div className="max-w-md mx-auto space-y-2">
-            {billState === "done" ? (
-              <p className="text-center text-sm font-medium text-green-600 py-2">{t.billRequested}</p>
-            ) : (
-              <button
-                onClick={handleBill}
-                disabled={billState === "pending" || orders.length === 0}
-                className="w-full py-3 rounded-xl font-semibold text-sm border-2 flex items-center justify-center gap-2 disabled:opacity-50"
-                style={{ borderColor: brandColor, color: brandColor }}
-              >
-                <Receipt size={16} />
-                {billState === "pending" ? <Loader2 size={14} className="animate-spin" /> : t.requestBill}
-              </button>
-            )}
-            <button
-              onClick={onOrderMore}
-              className="w-full py-3 rounded-xl text-white font-semibold text-sm flex items-center justify-center gap-2"
-              style={{ backgroundColor: brandColor }}
-            >
-              <Plus size={16} />
-              {t.orderMore}
-            </button>
-          </div>
-        </div>
+        <button
+          onClick={onOrderMore}
+          className="w-full py-3 rounded-2xl text-white font-semibold text-sm flex items-center justify-center gap-2"
+          style={{ backgroundColor: brandColor }}
+        >
+          <Plus size={16} />
+          {t.orderMore}
+        </button>
       )}
     </div>
   )
