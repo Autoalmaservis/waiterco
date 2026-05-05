@@ -75,6 +75,10 @@ export async function uploadVenueCoverImage(
   const path = `venues/${venueId}/cover.${ext}`
 
   const admin = createAdminClient()
+
+  // Create bucket if it doesn't exist yet (idempotent — ignore error if already exists)
+  await (admin as any).storage.createBucket("venue-images", { public: true })
+
   const { error: upErr } = await (admin as any).storage
     .from("venue-images")
     .upload(path, file, { upsert: true, contentType: file.type })
