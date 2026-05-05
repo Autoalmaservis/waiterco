@@ -4,7 +4,7 @@ import { useState, useTransition, useRef, useEffect, useCallback } from "react"
 import {
   Bell, ShoppingCart, X, Plus, Minus, ChevronRight, Star,
   AlertTriangle, Tag, Coffee, CheckCircle2, Check, ChevronDown,
-  ArrowLeft, Receipt, Share2, Globe, Clock, Loader2,
+  ArrowLeft, Receipt, Share2, Globe, Clock, Loader2, User,
 } from "lucide-react"
 import { formatCurrency } from "@/lib/utils"
 import { getCategoryEmoji } from "@/lib/category-emoji"
@@ -137,6 +137,7 @@ export default function MenuPageClient({
   const [sessionStatus, setSessionStatus] = useState(initialSessionStatus)
   const [grandTotal, setGrandTotal] = useState(initialOrders.reduce((s, o) => s + o.total_amount, 0))
   const [ratingOpen, setRatingOpen] = useState(false)
+  const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [ratingDone, setRatingDone] = useState(false)
   const prevSessionStatus = useRef(initialSessionStatus)
 
@@ -322,82 +323,71 @@ export default function MenuPageClient({
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Sticky header */}
-      <header className="sticky top-0 z-30 shadow-sm" style={{ backgroundColor: brandColor }}>
-        <div className="max-w-md mx-auto px-4 py-3 flex items-center gap-2">
+      <header className="sticky top-0 z-30 bg-white border-b border-gray-100 shadow-sm">
+        <div className="max-w-md mx-auto px-3 h-14 flex items-center gap-2">
 
-          {/* Back button in items view */}
-          {view === "items" && (
-            <button onClick={() => setView("categories")}
-              className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center shrink-0">
-              <ArrowLeft size={16} className="text-white" />
-            </button>
-          )}
-
-          {/* Logo / venue info */}
-          {view !== "items" && (
-            venue.logo_url ? (
-              <img src={venue.logo_url} alt={venue.name} className="w-9 h-9 rounded-lg object-cover shrink-0" />
-            ) : (
-              <div className="w-9 h-9 rounded-lg bg-white/20 flex items-center justify-center shrink-0">
-                <Coffee size={18} className="text-white" />
-              </div>
-            )
-          )}
-
-          <div className="flex-1 min-w-0">
-            {view === "items" ? (
-              <h1 className="text-white font-bold text-sm leading-tight truncate">{activeCategory?.name}</h1>
-            ) : (
-              <>
-                <h1 className="text-white font-bold text-sm leading-tight truncate">{venue.name}</h1>
-                <p className="text-white/70 text-xs">{t.table}: {table.name}</p>
-              </>
-            )}
-          </div>
-
-          {/* Language toggle */}
+          {/* Back button */}
           <button
-            onClick={() => setLang(l => l === "sk" ? "en" : "sk")}
-            className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold text-white/80 hover:text-white hover:bg-white/10 transition-colors shrink-0"
+            onClick={() => {
+              if (view === "items" || view === "orders") setView("categories")
+              else if (typeof window !== "undefined") window.history.back()
+            }}
+            className="w-9 h-9 rounded-xl flex items-center justify-center text-gray-500 hover:bg-gray-100 active:bg-gray-200 transition-colors shrink-0"
           >
-            <Globe size={13} />
-            {lang.toUpperCase()}
+            <ArrowLeft size={20} />
           </button>
 
-          {/* Orders badge */}
-          {sessionId && (
-            <button
-              onClick={() => setView(v => v === "orders" ? "categories" : "orders")}
-              className="relative flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all shrink-0"
-              style={{ backgroundColor: view === "orders" ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.2)", color: view === "orders" ? brandColor : "white" }}
-            >
-              <Receipt size={14} />
-              {trackingOrders.length > 0 && (
-                <span
-                  className="absolute -top-1 -right-1 w-4 h-4 rounded-full text-[9px] font-bold flex items-center justify-center text-white"
-                  style={{ backgroundColor: sessionStatus === "closed" ? "#16a34a" : "#e11d48" }}
-                >
-                  {trackingOrders.length}
-                </span>
+          {/* Center: logo + venue/category name */}
+          <div className="flex-1 flex items-center gap-2 min-w-0">
+            {view !== "items" && (
+              venue.logo_url
+                ? <img src={venue.logo_url} alt={venue.name} className="w-7 h-7 rounded-lg object-cover shrink-0" />
+                : <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: `${brandColor}20` }}>
+                    <Coffee size={14} style={{ color: brandColor }} />
+                  </div>
+            )}
+            <div className="min-w-0">
+              {view === "items" ? (
+                <p className="font-bold text-gray-900 text-sm leading-tight truncate">{activeCategory?.name}</p>
+              ) : (
+                <>
+                  <p className="font-bold text-gray-900 text-sm leading-tight truncate">{venue.name}</p>
+                  <p className="text-gray-400 text-xs">{t.table}: {table.name}</p>
+                </>
               )}
-              {t.myOrder}
-            </button>
-          )}
+            </div>
+          </div>
 
-          {/* Waiter call */}
+          {/* Cart icon */}
           <button
-            onClick={handleCallWaiter}
-            disabled={waiterCallState === "pending"}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all shrink-0"
-            style={{
-              backgroundColor: waiterCallState === "done" ? "#16a34a" : waiterCallState === "error" ? "#dc2626" : "rgba(255,255,255,0.2)",
-              color: "white",
-            }}
+            onClick={() => cartCount > 0 && setCartOpen(true)}
+            className="relative w-9 h-9 rounded-xl flex items-center justify-center text-gray-600 hover:bg-gray-100 active:bg-gray-200 transition-colors shrink-0"
           >
-            <Bell size={14} className={waiterCallState === "pending" ? "animate-pulse" : ""} />
-            <span className="hidden sm:inline">
-              {waiterCallState === "done" ? t.waiterComing : waiterCallState === "error" ? t.error : t.waiter}
-            </span>
+            <ShoppingCart size={20} />
+            {cartCount > 0 && (
+              <span
+                className={`absolute -top-0.5 -right-0.5 w-5 h-5 rounded-full text-[10px] font-bold flex items-center justify-center text-white transition-transform ${flashItemId ? "scale-125" : ""}`}
+                style={{ backgroundColor: brandColor }}
+              >
+                {cartCount}
+              </span>
+            )}
+          </button>
+
+          {/* User / profile */}
+          <button
+            onClick={() => setUserMenuOpen(true)}
+            className="relative w-9 h-9 rounded-xl flex items-center justify-center text-gray-600 hover:bg-gray-100 active:bg-gray-200 transition-colors shrink-0"
+          >
+            <User size={20} />
+            {sessionId && trackingOrders.length > 0 && (
+              <span
+                className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full text-[9px] font-bold flex items-center justify-center text-white"
+                style={{ backgroundColor: sessionStatus === "closed" ? "#16a34a" : "#e11d48" }}
+              >
+                {trackingOrders.length}
+              </span>
+            )}
           </button>
         </div>
       </header>
@@ -608,6 +598,72 @@ export default function MenuPageClient({
           isPending={isPending}
           error={orderError}
         />
+      )}
+
+      {/* User menu sheet */}
+      {userMenuOpen && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40" onClick={() => setUserMenuOpen(false)}>
+          <div className="bg-white w-full max-w-md rounded-t-3xl overflow-hidden pb-safe" onClick={e => e.stopPropagation()}>
+            {/* Handle */}
+            <div className="flex justify-center pt-3 pb-1">
+              <div className="w-10 h-1 rounded-full bg-gray-200" />
+            </div>
+            <div className="px-5 pt-2 pb-6 space-y-2">
+              {/* Language toggle */}
+              <button
+                onClick={() => { setLang(l => l === "sk" ? "en" : "sk") }}
+                className="w-full flex items-center justify-between px-4 py-3.5 rounded-2xl bg-gray-50 hover:bg-gray-100 active:bg-gray-200 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-gray-200 flex items-center justify-center">
+                    <Globe size={18} className="text-gray-600" />
+                  </div>
+                  <span className="font-medium text-gray-900 text-sm">Jazyk / Language</span>
+                </div>
+                <span className="text-sm font-bold px-3 py-1 rounded-lg text-white" style={{ backgroundColor: brandColor }}>
+                  {lang.toUpperCase()}
+                </span>
+              </button>
+
+              {/* Call waiter */}
+              <button
+                onClick={() => { handleCallWaiter(); setUserMenuOpen(false) }}
+                disabled={waiterCallState === "pending"}
+                className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl bg-gray-50 hover:bg-gray-100 active:bg-gray-200 transition-colors disabled:opacity-60"
+              >
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: `${brandColor}20` }}>
+                  <Bell size={18} style={{ color: brandColor }} className={waiterCallState === "pending" ? "animate-pulse" : ""} />
+                </div>
+                <span className="font-medium text-gray-900 text-sm">
+                  {waiterCallState === "done" ? t.waiterComing : waiterCallState === "error" ? t.error : t.waiter}
+                </span>
+              </button>
+
+              {/* My orders */}
+              {sessionId && (
+                <button
+                  onClick={() => { setView("orders"); setUserMenuOpen(false) }}
+                  className="w-full flex items-center justify-between px-4 py-3.5 rounded-2xl bg-gray-50 hover:bg-gray-100 active:bg-gray-200 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-gray-200 flex items-center justify-center">
+                      <Receipt size={18} className="text-gray-600" />
+                    </div>
+                    <span className="font-medium text-gray-900 text-sm">{t.myOrder}</span>
+                  </div>
+                  {trackingOrders.length > 0 && (
+                    <span
+                      className="text-xs font-bold px-2.5 py-1 rounded-full text-white"
+                      style={{ backgroundColor: sessionStatus === "closed" ? "#16a34a" : "#e11d48" }}
+                    >
+                      {trackingOrders.length}
+                    </span>
+                  )}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Rating modal */}
