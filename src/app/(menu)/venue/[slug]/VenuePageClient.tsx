@@ -1,15 +1,15 @@
 "use client"
 
-import { useState, useTransition } from "react"
+import { useState, useTransition, useEffect } from "react"
 import Link from "next/link"
 import {
   ArrowLeft, MapPin, Phone, Star, UtensilsCrossed, Wine, Coffee,
   ChevronDown, AlertTriangle, Tag, Plus, Minus, X, Check,
-  ShoppingCart, ChevronRight, Truck, Package, Loader2, CheckCircle2,
+  ShoppingCart, ChevronRight, Truck, Package, Loader2, CheckCircle2, Navigation,
 } from "lucide-react"
 import { formatCurrency } from "@/lib/utils"
 import { getCategoryEmoji } from "@/lib/category-emoji"
-import { placeDeliveryOrder, type DeliveryInfo } from "./actions"
+import { placeDeliveryOrder, getVenueReviews, submitVenueReview, type DeliveryInfo, type ReviewItem } from "./actions"
 
 type MenuItem = {
   id: string; category_id: string; name: string; description: string | null
@@ -58,6 +58,8 @@ export default function VenuePageClient({ venue, categories, items, modifierGrou
   const [detailItem, setDetailItem] = useState<MenuItem | null>(null)
   const [orderMode, setOrderMode] = useState<"delivery" | "takeaway" | null>(null)
   const [pressId, setPressId] = useState<string | null>(null)
+  const [reviewSheetOpen, setReviewSheetOpen] = useState(false)
+  const [ratingModalOpen, setRatingModalOpen] = useState(false)
 
   function hasModifiers(itemId: string) { return modifierGroups.some(g => g.item_id === itemId) }
   function itemGroupsFor(itemId: string) {
@@ -158,13 +160,38 @@ export default function VenuePageClient({ venue, categories, items, modifierGrou
               <Package size={18} />
               Takeaway
             </button>
-            {avgRating !== null && reviewCount > 0 && (
-              <div className="flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 border-gray-100 text-xs font-semibold text-amber-500 bg-amber-50/50 min-w-[72px]">
-                <Star size={18} fill="currentColor" />
-                <span>{avgRating.toFixed(1)} <span className="text-gray-400 font-normal">({reviewCount})</span></span>
-              </div>
-            )}
           </div>
+
+          {/* Action buttons: phone, navigate, rating */}
+          <div className="flex gap-2 mt-2">
+            {venue.phone && (
+              <a
+                href={`tel:${venue.phone}`}
+                className="flex-1 flex flex-col items-center gap-1.5 py-2.5 rounded-xl bg-gray-50 text-xs font-semibold text-gray-600 border border-gray-100"
+              >
+                <Phone size={16} className="text-gray-400" />
+                Zavolať
+              </a>
+            )}
+            <a
+              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([venue.name, venue.address, venue.city].filter(Boolean).join(" "))}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 flex flex-col items-center gap-1.5 py-2.5 rounded-xl bg-gray-50 text-xs font-semibold text-gray-600 border border-gray-100"
+            >
+              <Navigation size={16} className="text-gray-400" />
+              Navigovať
+            </a>
+            <button
+              onClick={() => setReviewSheetOpen(true)}
+              className="flex-1 flex flex-col items-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold border"
+              style={{ backgroundColor: "#fffbeb", borderColor: "#fde68a", color: "#d97706" }}
+            >
+              <Star size={16} fill="currentColor" />
+              {avgRating !== null && reviewCount > 0 ? `${avgRating.toFixed(1)} (${reviewCount})` : "Hodnotiť"}
+            </button>
+          </div>
+
           {orderMode && (
             <p className="text-xs text-gray-500 mt-2 text-center">
               {orderMode === "delivery" ? "Pridajte položky do košíka a vyplňte adresu doručenia." : "Pridajte položky do košíka a odoberte si pri pokladni."}
@@ -175,38 +202,12 @@ export default function VenuePageClient({ venue, categories, items, modifierGrou
 
       {/* Sticky orange header */}
       <div className="sticky top-0 z-30 shadow-sm" style={{ backgroundColor: brand }}>
-        {/* Row 1: back + name + cart */}
-        <div className="max-w-lg mx-auto px-3 h-12 flex items-center gap-2">
+        {/* Row 1: back only */}
+        <div className="max-w-lg mx-auto px-3 h-11 flex items-center gap-2">
           <Link href="/restaurants"
             className="w-8 h-8 rounded-xl flex items-center justify-center text-white hover:bg-white/10 active:bg-white/20 transition-colors shrink-0">
             <ArrowLeft size={18} />
           </Link>
-          <div className="flex-1 flex items-center gap-2 min-w-0">
-            {venue.logo_url && (
-              <img src={venue.logo_url} alt={venue.name} className="w-6 h-6 rounded-lg object-cover shrink-0" />
-            )}
-            <span className="font-bold text-white text-sm truncate">{venue.name}</span>
-          </div>
-          {/* Cart icon + total */}
-          <button
-            onClick={() => cartCount > 0 && setCartOpen(true)}
-            className={`relative flex items-center justify-center text-white hover:bg-white/10 active:bg-white/20 transition-all shrink-0 ${cartCount > 0 ? "gap-1.5 px-2.5 h-9 rounded-xl" : "w-9 h-9 rounded-xl"}`}
-          >
-            <div className="relative">
-              <ShoppingCart size={20} />
-              {cartCount > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full text-[9px] font-bold flex items-center justify-center"
-                  style={{ backgroundColor: "white", color: brand }}>
-                  {cartCount}
-                </span>
-              )}
-            </div>
-            {cartCount > 0 && (
-              <span className="text-sm font-bold text-white tabular-nums">
-                {formatCurrency(cartTotal, venue.currency)}
-              </span>
-            )}
-          </button>
         </div>
         {/* Row 2: tabs */}
         <div className="max-w-lg mx-auto flex border-t border-white/20">
@@ -383,8 +384,11 @@ export default function VenuePageClient({ venue, categories, items, modifierGrou
             </span>
           </button>
 
-          {/* Right: rating */}
-          <div className="w-14 rounded-2xl flex flex-col items-center justify-center gap-1 bg-black/20 shrink-0">
+          {/* Right: rating (clickable) */}
+          <button
+            onClick={() => setReviewSheetOpen(true)}
+            className="w-14 rounded-2xl flex flex-col items-center justify-center gap-1 bg-black/20 hover:bg-black/30 active:bg-black/35 transition-colors shrink-0"
+          >
             {avgRating !== null && reviewCount > 0 ? (
               <>
                 <Star size={18} fill="white" className="text-white" />
@@ -393,11 +397,11 @@ export default function VenuePageClient({ venue, categories, items, modifierGrou
               </>
             ) : (
               <>
-                <Star size={18} className="text-white/30" />
-                <span className="text-[9px] text-white/40 font-medium leading-none">—</span>
+                <Star size={18} className="text-white/60" />
+                <span className="text-[9px] text-white/60 font-medium leading-none">Hodnotiť</span>
               </>
             )}
-          </div>
+          </button>
 
         </div>
       </div>
@@ -428,6 +432,26 @@ export default function VenuePageClient({ venue, categories, items, modifierGrou
         />
       )}
 
+      {/* Review sheet */}
+      {reviewSheetOpen && (
+        <VenueReviewSheet
+          venueId={venue.id}
+          brand={brand}
+          onClose={() => setReviewSheetOpen(false)}
+          onAddReview={() => { setReviewSheetOpen(false); setRatingModalOpen(true) }}
+        />
+      )}
+
+      {/* Rating modal */}
+      {ratingModalOpen && (
+        <VenueRatingModal
+          venueName={venue.name}
+          venueId={venue.id}
+          brand={brand}
+          onClose={() => setRatingModalOpen(false)}
+        />
+      )}
+
       {/* Cart / order sheet */}
       {cartOpen && (
         <DeliveryCartSheet
@@ -446,6 +470,169 @@ export default function VenuePageClient({ venue, categories, items, modifierGrou
           }}
         />
       )}
+    </div>
+  )
+}
+
+function VenueReviewSheet({ venueId, brand, onClose, onAddReview }: {
+  venueId: string; brand: string; onClose: () => void; onAddReview: () => void
+}) {
+  const [reviews, setReviews] = useState<ReviewItem[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    getVenueReviews(venueId).then(r => { setReviews(r); setLoading(false) })
+  }, [venueId])
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50" onClick={onClose}>
+      <div className="bg-white w-full max-w-md rounded-t-3xl max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
+        <div className="flex justify-center pt-3 pb-1 shrink-0">
+          <div className="w-10 h-1 rounded-full bg-gray-200" />
+        </div>
+        <div className="flex items-center justify-between px-5 pt-2 pb-3 border-b border-gray-100 shrink-0">
+          <div>
+            <h3 className="font-bold text-gray-900 text-lg">Hodnotenia</h3>
+            {!loading && reviews.length > 0 && (
+              <p className="text-xs text-gray-400">{reviews.length} hodnotení</p>
+            )}
+          </div>
+          <button onClick={onClose} className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
+            <X size={16} className="text-gray-500" />
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto px-5 py-3 space-y-3">
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 size={24} className="animate-spin text-gray-300" />
+            </div>
+          ) : reviews.length === 0 ? (
+            <div className="text-center py-12">
+              <Star size={36} className="text-gray-200 mx-auto mb-2" />
+              <p className="text-gray-400 text-sm">Zatiaľ žiadne hodnotenia</p>
+              <p className="text-gray-300 text-xs mt-1">Buďte prvý, kto ohodnotí túto prevádzku</p>
+            </div>
+          ) : (
+            reviews.map(r => (
+              <div key={r.id} className="bg-gray-50 rounded-2xl p-3.5 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex gap-0.5">
+                    {[1,2,3,4,5].map(s => (
+                      <Star key={s} size={14} fill={s <= r.overall_rating ? brand : "none"} stroke={s <= r.overall_rating ? brand : "#d1d5db"} />
+                    ))}
+                  </div>
+                  <span className="text-xs text-gray-400">{new Date(r.created_at).toLocaleDateString("sk-SK")}</span>
+                </div>
+                {(r.food_rating || r.service_rating) && (
+                  <div className="flex gap-3">
+                    {r.food_rating && <span className="text-[11px] text-gray-500">Jedlo: {r.food_rating}/5</span>}
+                    {r.service_rating && <span className="text-[11px] text-gray-500">Obsluha: {r.service_rating}/5</span>}
+                  </div>
+                )}
+                {r.comment && <p className="text-sm text-gray-700 leading-snug">"{r.comment}"</p>}
+              </div>
+            ))
+          )}
+        </div>
+        <div className="px-5 pb-8 pt-3 border-t border-gray-100 shrink-0">
+          <button
+            onClick={onAddReview}
+            className="w-full py-3.5 rounded-2xl text-white font-bold text-sm flex items-center justify-center gap-2"
+            style={{ backgroundColor: brand }}
+          >
+            <Star size={16} fill="white" />
+            Pridať hodnotenie
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function VenueRatingModal({ venueName, venueId, brand, onClose }: {
+  venueName: string; venueId: string; brand: string; onClose: () => void
+}) {
+  const [overall, setOverall] = useState(0)
+  const [food, setFood] = useState(0)
+  const [service, setService] = useState(0)
+  const [comment, setComment] = useState("")
+  const [submitted, setSubmitted] = useState(false)
+  const [isPending, startTransition] = useTransition()
+
+  function handleSubmit() {
+    if (overall === 0) return
+    startTransition(async () => {
+      await submitVenueReview(venueId, overall, food || null, service || null, comment)
+      setSubmitted(true)
+      setTimeout(onClose, 1800)
+    })
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60" onClick={onClose}>
+      <div className="bg-white w-full max-w-md rounded-t-3xl" onClick={e => e.stopPropagation()}>
+        <div className="px-5 pt-6 pb-8">
+          {submitted ? (
+            <div className="text-center py-8">
+              <CheckCircle2 size={52} className="text-green-500 mx-auto mb-3" />
+              <h3 className="font-bold text-gray-900 text-xl">Ďakujeme! 🎉</h3>
+              <p className="text-gray-500 text-sm mt-1">{venueName}</p>
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center justify-between mb-5">
+                <div>
+                  <h3 className="font-bold text-gray-900 text-lg">Ohodnoťte nás!</h3>
+                  <p className="text-gray-400 text-sm">{venueName}</p>
+                </div>
+                <button onClick={onClose} className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
+                  <X size={16} className="text-gray-500" />
+                </button>
+              </div>
+              {[
+                { label: "Celkové hodnotenie", val: overall, set: setOverall, req: true },
+                { label: "Jedlo", val: food, set: setFood, req: false },
+                { label: "Obsluha", val: service, set: setService, req: false },
+              ].map(({ label, val, set, req }) => (
+                <div key={label} className="flex items-center justify-between mb-3">
+                  <span className="text-sm font-medium text-gray-700">
+                    {label}{req && <span className="text-red-400 ml-0.5 text-xs">*</span>}
+                  </span>
+                  <div className="flex gap-1">
+                    {[1,2,3,4,5].map(s => (
+                      <button key={s} onClick={() => set(s)} className="p-0.5">
+                        <Star size={22} fill={s <= val ? brand : "none"} stroke={s <= val ? brand : "#d1d5db"} />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+              <textarea
+                value={comment}
+                onChange={e => setComment(e.target.value)}
+                placeholder="Komentár (voliteľné)…"
+                rows={3}
+                className="w-full mt-2 text-sm border border-gray-200 rounded-xl px-3 py-2.5 resize-none focus:outline-none focus:ring-2"
+                style={{ "--tw-ring-color": brand } as React.CSSProperties}
+              />
+              <div className="flex gap-2 mt-4">
+                <button onClick={onClose}
+                  className="flex-1 py-3 rounded-xl border border-gray-200 text-sm text-gray-500 font-medium">
+                  Preskočiť
+                </button>
+                <button
+                  onClick={handleSubmit}
+                  disabled={overall === 0 || isPending}
+                  className="flex-1 py-3 rounded-xl text-white text-sm font-bold disabled:opacity-40"
+                  style={{ backgroundColor: brand }}
+                >
+                  {isPending ? <Loader2 size={16} className="animate-spin mx-auto" /> : "Odoslať"}
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
     </div>
   )
 }

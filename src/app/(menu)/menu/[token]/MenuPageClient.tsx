@@ -5,7 +5,7 @@ import {
   Bell, ShoppingCart, X, Plus, Minus, ChevronRight, Star,
   AlertTriangle, Tag, Coffee, CheckCircle2, Check, ChevronDown,
   ArrowLeft, Receipt, Share2, Globe, Clock, Loader2, User, MessageSquare,
-  UtensilsCrossed, Euro, Banknote, CreditCard,
+  UtensilsCrossed, Euro, Banknote, CreditCard, Info, MapPin,
 } from "lucide-react"
 import { formatCurrency } from "@/lib/utils"
 import { getCategoryEmoji } from "@/lib/category-emoji"
@@ -155,6 +155,7 @@ export default function MenuPageClient({
   const [paymentMethod, setPaymentMethod] = useState<"cash" | "card">("card")
   const [reviewsOpen, setReviewsOpen] = useState(false)
   const [manualRatingOpen, setManualRatingOpen] = useState(false)
+  const [venueInfoOpen, setVenueInfoOpen] = useState(false)
   const cartBtnRef = useRef<HTMLButtonElement>(null)
   const [ratingDone, setRatingDone] = useState(false)
   const prevSessionStatus = useRef(initialSessionStatus)
@@ -389,60 +390,31 @@ export default function MenuPageClient({
             <ArrowLeft size={20} />
           </button>
 
-          {/* Center: logo + table/category name */}
-          <div className="flex-1 flex items-center gap-2 min-w-0">
-            {view !== "items" && (
-              venue.logo_url
-                ? <img src={venue.logo_url} alt={venue.name} className="w-7 h-7 rounded-lg object-cover shrink-0" />
-                : <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 bg-white/15">
-                    <Coffee size={14} className="text-white" />
+          {/* Center: category name (items view) or tappable venue name */}
+          {view === "items" ? (
+            <div className="flex-1 min-w-0 px-1">
+              <p className="font-bold text-white text-sm leading-tight truncate">{activeCategory?.name}</p>
+            </div>
+          ) : (
+            <button
+              onClick={() => setVenueInfoOpen(true)}
+              className="flex-1 flex items-center gap-1.5 min-w-0 py-1 px-1.5 rounded-xl hover:bg-white/10 active:bg-white/15 transition-colors"
+            >
+              {venue.logo_url
+                ? <img src={venue.logo_url} alt={venue.name} className="w-6 h-6 rounded-lg object-cover shrink-0" />
+                : <div className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0 bg-white/15">
+                    <Coffee size={12} className="text-white" />
                   </div>
-            )}
-            <div className="min-w-0">
-              {view === "items" ? (
-                <p className="font-bold text-white text-sm leading-tight truncate">{activeCategory?.name}</p>
-              ) : (
-                <>
-                  <p className="text-white font-semibold text-sm leading-tight">{t.table}: {table.name}</p>
-                  <button onClick={() => setReviewsOpen(true)} className="flex items-center gap-1 mt-0.5">
-                    {venue.avg_rating !== null && venue.review_count > 0 ? (
-                      <>
-                        <Star size={11} fill="white" className="text-white" />
-                        <span className="text-white text-xs font-bold">{venue.avg_rating.toFixed(1)}</span>
-                        <span className="text-white/60 text-[10px]">({venue.review_count})</span>
-                      </>
-                    ) : (
-                      <span className="text-white/50 text-[10px]">Pridať hodnotenie</span>
-                    )}
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-
-          {/* Cart icon / total */}
-          <button
-            ref={cartBtnRef}
-            onClick={() => cartCount > 0 && setCartOpen(true)}
-            className={`relative flex items-center justify-center text-white hover:bg-white/10 active:bg-white/20 transition-all shrink-0 ${cartCount > 0 ? "gap-1.5 px-2.5 h-9 rounded-xl" : "w-9 h-9 rounded-xl"}`}
-          >
-            <div className="relative">
-              <ShoppingCart size={20} />
-              {cartCount > 0 && (
-                <span
-                  className={`absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full text-[9px] font-bold flex items-center justify-center transition-transform ${flashItemId ? "scale-125" : "scale-100"}`}
-                  style={{ backgroundColor: "white", color: brandColor }}
-                >
-                  {cartCount}
-                </span>
-              )}
-            </div>
-            {cartCount > 0 && (
-              <span className="text-sm font-bold text-white tabular-nums">
-                {formatCurrency(cartTotal, venue.currency)}
-              </span>
-            )}
-          </button>
+              }
+              <div className="min-w-0 text-left">
+                <div className="flex items-center gap-1">
+                  <span className="font-bold text-white text-sm leading-tight truncate">{venue.name}</span>
+                  <Info size={11} className="text-white/50 shrink-0" />
+                </div>
+                <p className="text-white/70 text-[10px] font-medium leading-none mt-0.5">{t.table}: {table.name}</p>
+              </div>
+            </button>
+          )}
 
           {/* User / profile */}
           <button
@@ -707,18 +679,22 @@ export default function MenuPageClient({
             </button>
           )}
 
-          {/* Slot 4: waiter action sheet trigger */}
+          {/* Slot 4: star rating / reviews */}
           <button
-            onClick={() => { setWaiterSheetOpen(true); setWaiterSheetMsgOpen(false); setWaiterMessage("") }}
+            onClick={() => setReviewsOpen(true)}
             className="w-12 rounded-2xl flex flex-col items-center justify-center gap-1 bg-black/20 hover:bg-black/30 active:bg-black/35 transition-colors shrink-0"
           >
-            <Bell
-              size={20}
-              className={`${waiterCallState === "done" ? "text-green-300" : "text-white"} ${waiterCallState === "pending" ? "animate-pulse" : ""}`}
-            />
-            <span className="text-[9px] text-white/70 font-medium leading-none text-center">
-              {waiterCallState === "done" ? "Prichádza" : t.waiter}
-            </span>
+            {venue.avg_rating !== null && venue.review_count > 0 ? (
+              <>
+                <Star size={18} fill="white" className="text-white" />
+                <span className="text-[10px] text-white font-bold leading-none">{venue.avg_rating.toFixed(1)}</span>
+              </>
+            ) : (
+              <>
+                <Star size={18} className="text-white/60" />
+                <span className="text-[9px] text-white/60 font-medium leading-none">Hodnotiť</span>
+              </>
+            )}
           </button>
 
         </div>
@@ -782,6 +758,21 @@ export default function MenuPageClient({
                   )}
                 </div>
               )}
+
+              {/* Call waiter */}
+              <button
+                onClick={async () => { setUserMenuOpen(false); await handleCallWaiter() }}
+                disabled={waiterCallState === "pending"}
+                className="w-full flex items-center justify-between px-4 py-3.5 rounded-2xl bg-gray-50 hover:bg-gray-100 active:bg-gray-200 transition-colors disabled:opacity-60"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ backgroundColor: `${brandColor}18` }}>
+                    <Bell size={18} style={{ color: brandColor }} />
+                  </div>
+                  <span className="font-medium text-gray-900 text-sm">{t.callWaiter}</span>
+                </div>
+                {waiterCallState === "done" && <CheckCircle2 size={16} className="text-green-500" />}
+              </button>
 
               {/* Language toggle */}
               <button
@@ -931,6 +922,15 @@ export default function MenuPageClient({
           onMethodChange={setPaymentMethod}
           onConfirm={handlePaymentRequest}
           onClose={() => setPaymentSheetOpen(false)}
+        />
+      )}
+
+      {/* Venue info sheet */}
+      {venueInfoOpen && (
+        <VenueInfoSheet
+          venue={venue}
+          brandColor={brandColor}
+          onClose={() => setVenueInfoOpen(false)}
         />
       )}
 
@@ -1588,6 +1588,56 @@ function PaymentSheet({ grandTotal, splitPeople, method, brandColor, currency, t
               ? <Loader2 size={18} className="animate-spin" />
               : <><Euro size={18} />{t.confirmPayment}</>
             }
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Venue info sheet ─────────────────────────────────────────────────────────
+function VenueInfoSheet({ venue, brandColor, onClose }: {
+  venue: VenueInfo; brandColor: string; onClose: () => void
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50" onClick={onClose}>
+      <div className="bg-white w-full max-w-md rounded-t-3xl" onClick={e => e.stopPropagation()}>
+        <div className="flex justify-center pt-3 pb-1">
+          <div className="w-10 h-1 rounded-full bg-gray-200" />
+        </div>
+        <div className="px-5 pt-3 pb-8 space-y-4">
+          <div className="flex items-center gap-3">
+            {venue.logo_url ? (
+              <img src={venue.logo_url} alt={venue.name} className="w-14 h-14 rounded-2xl object-cover shrink-0" />
+            ) : (
+              <div className="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0" style={{ backgroundColor: `${brandColor}20` }}>
+                <Coffee size={24} style={{ color: brandColor }} />
+              </div>
+            )}
+            <div className="min-w-0">
+              <h3 className="font-bold text-gray-900 text-lg leading-tight">{venue.name}</h3>
+              {(venue.address || venue.city) && (
+                <p className="text-xs text-gray-400 flex items-center gap-0.5 mt-0.5">
+                  <MapPin size={10} className="shrink-0" />
+                  {[venue.address, venue.city].filter(Boolean).join(", ")}
+                </p>
+              )}
+              {venue.avg_rating !== null && venue.review_count > 0 && (
+                <p className="text-xs text-amber-500 flex items-center gap-0.5 mt-0.5">
+                  <Star size={10} fill="currentColor" />
+                  {venue.avg_rating.toFixed(1)} ({venue.review_count} hodnotení)
+                </p>
+              )}
+            </div>
+          </div>
+          {venue.description && (
+            <p className="text-sm text-gray-600 leading-relaxed">{venue.description}</p>
+          )}
+          <button
+            onClick={onClose}
+            className="w-full py-3 rounded-xl bg-gray-100 text-gray-600 text-sm font-medium"
+          >
+            Zatvoriť
           </button>
         </div>
       </div>

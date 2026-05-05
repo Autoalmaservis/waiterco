@@ -126,3 +126,40 @@ export async function placeDeliveryOrder(
 
   return { error: null, orderId: order.id }
 }
+
+export type ReviewItem = {
+  id: string; overall_rating: number; food_rating: number | null
+  service_rating: number | null; comment: string | null; created_at: string
+}
+
+export async function getVenueReviews(venueId: string): Promise<ReviewItem[]> {
+  const admin = createAdminClient()
+  const { data } = await admin
+    .from("reviews")
+    .select("id, overall_rating, food_rating, service_rating, comment, created_at")
+    .eq("venue_id", venueId)
+    .eq("is_visible", true)
+    .order("created_at", { ascending: false })
+    .limit(50)
+  return (data ?? []) as ReviewItem[]
+}
+
+export async function submitVenueReview(
+  venueId: string,
+  overall: number,
+  food: number | null,
+  service: number | null,
+  comment: string
+): Promise<{ error: string | null }> {
+  const admin = createAdminClient()
+  const { error } = await admin.from("reviews").insert({
+    venue_id: venueId,
+    session_id: null,
+    overall_rating: overall,
+    food_rating: food,
+    service_rating: service,
+    comment: comment || null,
+    is_visible: true,
+  })
+  return { error: error?.message ?? null }
+}
