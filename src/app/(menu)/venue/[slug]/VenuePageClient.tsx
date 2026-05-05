@@ -227,7 +227,6 @@ export default function VenuePageClient({ venue, categories, items, modifierGrou
             {items.filter(i => i.category_id === activeCategoryId).map(item => {
               const qty = cartQtyFor(item.id)
               const withMods = hasModifiers(item.id)
-              const canOrder = !!orderMode
               return (
                 <div key={item.id}
                   className={`bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden ${!item.is_available ? "opacity-60" : ""}`}>
@@ -260,8 +259,6 @@ export default function VenuePageClient({ venue, categories, items, modifierGrou
                     <span className="font-bold text-sm" style={{ color: brand }}>{formatCurrency(item.base_price, venue.currency)}</span>
                     {!item.is_available ? (
                       <span className="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded-lg">Nedostupné</span>
-                    ) : !canOrder ? (
-                      <span className="text-xs text-gray-400 text-right leading-snug">Vyberte<br/>spôsob</span>
                     ) : withMods ? (
                       <button onClick={() => setPickerItem(item)} className="px-3 py-1.5 rounded-xl text-white text-xs font-semibold" style={{ backgroundColor: brand }}>Vybrať</button>
                     ) : qty === 0 ? (
@@ -305,7 +302,7 @@ export default function VenuePageClient({ venue, categories, items, modifierGrou
       )}
 
       {/* Floating cart button */}
-      {cartCount > 0 && orderMode && (
+      {cartCount > 0 && (
         <div className="fixed bottom-6 left-0 right-0 z-40 flex justify-center px-4 pointer-events-none">
           <button
             onClick={() => setCartOpen(true)}
@@ -351,7 +348,7 @@ export default function VenuePageClient({ venue, categories, items, modifierGrou
       )}
 
       {/* Cart / order sheet */}
-      {cartOpen && orderMode && (
+      {cartOpen && (
         <DeliveryCartSheet
           cart={cart}
           brandColor={brand}
@@ -359,6 +356,7 @@ export default function VenuePageClient({ venue, categories, items, modifierGrou
           total={cartTotal}
           venueId={venue.id}
           orderMode={orderMode}
+          onOrderModeChange={setOrderMode}
           onChangeQty={changeQty}
           onClose={() => setCartOpen(false)}
           onSuccess={() => {
@@ -383,12 +381,14 @@ function InfoCard({ icon, label, children }: { icon: React.ReactNode; label: str
   )
 }
 
-function DeliveryCartSheet({ cart, brandColor, currency, total, venueId, orderMode, onChangeQty, onClose, onSuccess }: {
+function DeliveryCartSheet({ cart, brandColor, currency, total, venueId, orderMode: initialOrderMode, onOrderModeChange, onChangeQty, onClose, onSuccess }: {
   cart: CartItem[]; brandColor: string; currency: string; total: number
-  venueId: string; orderMode: "delivery" | "takeaway"
+  venueId: string; orderMode: "delivery" | "takeaway" | null
+  onOrderModeChange: (mode: "delivery" | "takeaway") => void
   onChangeQty: (cartId: string, delta: number) => void
   onClose: () => void; onSuccess: () => void
 }) {
+  const [orderMode, setOrderMode] = useState<"delivery" | "takeaway" | null>(initialOrderMode)
   const [name, setName] = useState("")
   const [phone, setPhone] = useState("")
   const [address, setAddress] = useState("")
@@ -397,12 +397,18 @@ function DeliveryCartSheet({ cart, brandColor, currency, total, venueId, orderMo
   const [success, setSuccess] = useState(false)
   const [isPending, startTransition] = useTransition()
 
+  function selectMode(mode: "delivery" | "takeaway") {
+    setOrderMode(mode)
+    onOrderModeChange(mode)
+  }
+
   function handleOrder() {
+    if (!orderMode) { setError("Vyberte spôsob objednávky."); return }
     if (!name.trim() || !phone.trim()) { setError("Vyplňte meno a telefón."); return }
     if (orderMode === "delivery" && !address.trim()) { setError("Vyplňte adresu doručenia."); return }
     setError(null)
     startTransition(async () => {
-      const info: DeliveryInfo = { type: orderMode, customerName: name.trim(), phone: phone.trim(), address: address.trim() || undefined, notes: notes.trim() || undefined }
+      const info: DeliveryInfo = { type: orderMode as "delivery" | "takeaway", customerName: name.trim(), phone: phone.trim(), address: address.trim() || undefined, notes: notes.trim() || undefined }
       const orderItems = cart.map(c => ({ menuItemId: c.menuItemId, name: c.name, quantity: c.quantity, unitPrice: c.basePrice, station: c.station, modifiers: c.modifiers }))
       const { error: err } = await placeDeliveryOrder(venueId, info, orderItems)
       if (err) setError(err)
@@ -469,6 +475,20 @@ function DeliveryCartSheet({ cart, brandColor, currency, total, venueId, orderMo
                 </span>
               </div>
             ))}
+          </div>
+
+          {/* Order mode selector */}
+          <div className="pt-2 border-t border-gray-100">
+            <p className="text-sm font-semibold text-gray-800 mb-2">Spôsob objednávky *</p>
+            <div className="grid grid-cols-2 gap-2">
+              {(["delivery", "takeaway"] as const).map(mode => (
+                <button key={mode} type="button" onClick={() => selectMode(mode)}
+                  className="flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 text-sm font-semibold transition-colors"
+                  style={orderMode === mode ? { borderColor: brandColor, color: brandColor, backgroundColor: `${brandColor}10` } : { borderColor: "#e5e7eb", color: "#6b7280" }}>
+                  {mode === "delivery" ? <><Truck size={15} />Donáška</> : <><Package size={15} />Takeaway</>}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Delivery info form */}
