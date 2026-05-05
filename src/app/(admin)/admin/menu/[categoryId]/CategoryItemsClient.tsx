@@ -111,15 +111,24 @@ function ImageUploadField({ value, onChange, venueId }: {
   )
 }
 
-function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
+function YesNo({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
   return (
-    <button
-      type="button"
-      onClick={() => onChange(!checked)}
-      className={`relative w-10 h-6 rounded-full transition-colors shrink-0 ${checked ? "bg-orange-500" : "bg-gray-200"}`}
-    >
-      <span className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${checked ? "translate-x-5" : "translate-x-1"}`} />
-    </button>
+    <div className="flex rounded-lg overflow-hidden border border-gray-200">
+      <button
+        type="button"
+        onClick={() => onChange(true)}
+        className={`px-4 py-1.5 text-sm font-medium transition-colors ${checked ? "bg-orange-500 text-white" : "bg-white text-gray-400 hover:text-gray-600"}`}
+      >
+        Áno
+      </button>
+      <button
+        type="button"
+        onClick={() => onChange(false)}
+        className={`px-4 py-1.5 text-sm font-medium transition-colors border-l border-gray-200 ${!checked ? "bg-gray-100 text-gray-700" : "bg-white text-gray-400 hover:text-gray-600"}`}
+      >
+        Nie
+      </button>
+    </div>
   )
 }
 
@@ -270,11 +279,11 @@ function ItemFormFields({ item, categoryId, venueId }: { item?: MenuItem; catego
         <div className="space-y-2">
           <div className="flex items-center justify-between px-3 py-2.5 bg-gray-50 rounded-lg">
             <span className="text-sm text-gray-700">🚚 Donáška</span>
-            <Toggle checked={availableForDelivery} onChange={setAvailableForDelivery} />
+            <YesNo checked={availableForDelivery} onChange={setAvailableForDelivery} />
           </div>
           <div className="flex items-center justify-between px-3 py-2.5 bg-gray-50 rounded-lg">
             <span className="text-sm text-gray-700">🛍️ Takeaway</span>
-            <Toggle checked={availableForTakeaway} onChange={setAvailableForTakeaway} />
+            <YesNo checked={availableForTakeaway} onChange={setAvailableForTakeaway} />
           </div>
         </div>
       </div>
