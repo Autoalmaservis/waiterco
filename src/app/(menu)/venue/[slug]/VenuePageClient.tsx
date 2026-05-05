@@ -167,9 +167,10 @@ export default function VenuePageClient({ venue, categories, items, modifierGrou
             {venue.phone && (
               <a
                 href={`tel:${venue.phone}`}
-                className="flex-1 flex flex-col items-center gap-1.5 py-2.5 rounded-xl bg-gray-50 text-xs font-semibold text-gray-600 border border-gray-100"
+                className="flex-1 flex flex-col items-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold border"
+                style={{ backgroundColor: "#f0fdf4", borderColor: "#bbf7d0", color: "#16a34a" }}
               >
-                <Phone size={16} className="text-gray-400" />
+                <Phone size={16} style={{ color: "#16a34a" }} />
                 Zavolať
               </a>
             )}
@@ -177,9 +178,10 @@ export default function VenuePageClient({ venue, categories, items, modifierGrou
               href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([venue.name, venue.address, venue.city].filter(Boolean).join(" "))}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex-1 flex flex-col items-center gap-1.5 py-2.5 rounded-xl bg-gray-50 text-xs font-semibold text-gray-600 border border-gray-100"
+              className="flex-1 flex flex-col items-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold border"
+              style={{ backgroundColor: "#eff6ff", borderColor: "#bfdbfe", color: "#2563eb" }}
             >
-              <Navigation size={16} className="text-gray-400" />
+              <Navigation size={16} style={{ color: "#2563eb" }} />
               Navigovať
             </a>
             <button
