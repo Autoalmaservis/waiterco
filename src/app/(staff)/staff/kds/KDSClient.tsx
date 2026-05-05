@@ -68,7 +68,7 @@ const COOK_COLUMNS: Column[] = [
   {
     key: "new",
     label: "Nové",
-    statuses: ["pending", "confirmed"],
+    statuses: ["confirmed"],
     nextStatus: "preparing",
     nextLabel: "Začať prípravu",
     headerBg: "#7c2d12",
@@ -110,7 +110,7 @@ const BARMAN_COLUMNS: Column[] = [
   {
     key: "new",
     label: "Nové",
-    statuses: ["pending", "confirmed"],
+    statuses: ["confirmed"],
     nextStatus: "preparing",
     nextLabel: "Začať prípravu",
     headerBg: "#1e3a5f",

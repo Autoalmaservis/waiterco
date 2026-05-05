@@ -31,7 +31,7 @@ export default async function KDSPage() {
       .from("orders")
       .select("id, table_id, order_number, round_number, status, notes, created_at")
       .eq("venue_id", venueId)
-      .in("status", ["pending", "confirmed", "preparing", "ready"])
+      .in("status", ["confirmed", "preparing", "ready"])
       .order("created_at", { ascending: true }),
 
     supabase
