@@ -400,40 +400,7 @@ export default function WaiterClient({
         {/* STOLY — split layout */}
         {activeTab === "tables" && (
           <div className="h-full flex overflow-hidden">
-            {/* Left: table list */}
-            <div className="w-52 shrink-0 border-r border-gray-800 overflow-y-auto flex flex-col">
-              {initialTables.length === 0 ? (
-                <div className="flex-1 flex items-center justify-center p-4">
-                  <EmptyState icon={Users} text="Ziadne stoly" />
-                </div>
-              ) : initialTables.map(table => {
-                const s = tableStyle(table.id)
-                const session = initialSessions.find(ss => ss.table_id === table.id)
-                const tableOrders = initialOrders.filter(o => o.table_id === table.id)
-                return (
-                  <button
-                    key={table.id}
-                    onClick={() => setSelectedTableId(table.id)}
-                    className="w-full border-b border-gray-800 px-3 py-3 hover:bg-gray-900 active:bg-gray-800 transition-colors text-left"
-                  >
-                    <div className="flex items-center gap-2 mb-1">
-                      <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: s.border }} />
-                      <span className="text-white text-sm font-semibold truncate flex-1">{table.name}</span>
-                      {tableOrders.length > 0 && (
-                        <span className="text-orange-400 text-xs font-bold shrink-0">{tableOrders.length} obj.</span>
-                      )}
-                    </div>
-                    <p className="text-xs text-gray-500 pl-[18px]" suppressHydrationWarning>
-                      {session
-                        ? (session.customer_count ? `${session.customer_count} hosti · ${timeAgo(session.opened_at)}` : timeAgo(session.opened_at))
-                        : "Volny stol"}
-                    </p>
-                  </button>
-                )
-              })}
-            </div>
-
-            {/* Right: floor plan */}
+            {/* Floor plan — full width */}
             <div className="flex-1 overflow-auto p-3">
               {!hasFloorPlan ? (
                 <div className="h-full flex flex-col items-center justify-center text-gray-700 text-sm gap-2">
