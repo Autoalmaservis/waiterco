@@ -59,3 +59,22 @@ body {
   animation: cat-float 2.8s ease-in-out infinite;
   display: inline-block;
 }
+
+@keyframes item-press {
+  0%   { transform: scale(1); }
+  30%  { transform: scale(0.92); }
+  65%  { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+.animate-item-press {
+  animation: item-press 0.32s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes fly-to-cart {
+  0%   { transform: translate(0px, 0px) scale(1);    opacity: 1; }
+  42%  { transform: translate(calc(var(--fly-dx) * 0.42), calc(var(--fly-dy) * 0.42 - 55px)) scale(0.78); opacity: 1; }
+  100% { transform: translate(var(--fly-dx), var(--fly-dy)) scale(0.1); opacity: 0; }
+}
+.animate-fly-to-cart {
+  animation: fly-to-cart 0.52s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}

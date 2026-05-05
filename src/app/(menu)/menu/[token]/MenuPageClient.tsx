@@ -138,6 +138,9 @@ export default function MenuPageClient({
   const [grandTotal, setGrandTotal] = useState(initialOrders.reduce((s, o) => s + o.total_amount, 0))
   const [ratingOpen, setRatingOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
+  const [pressId, setPressId] = useState<string | null>(null)
+  const [flyParticle, setFlyParticle] = useState<{ fromX: number; fromY: number; toX: number; toY: number } | null>(null)
+  const cartBtnRef = useRef<HTMLButtonElement>(null)
   const [ratingDone, setRatingDone] = useState(false)
   const prevSessionStatus = useRef(initialSessionStatus)
 
@@ -253,7 +256,13 @@ export default function MenuPageClient({
     if (hasModifiers(item.id)) setPickerItem(item)
     else setDetailItem(item)
   }
-  function addSimple(item: MenuItem) {
+  function triggerFly(srcX: number, srcY: number) {
+    const cartRect = cartBtnRef.current?.getBoundingClientRect()
+    if (!cartRect) return
+    setFlyParticle({ fromX: srcX, fromY: srcY, toX: cartRect.left + cartRect.width / 2, toY: cartRect.top + cartRect.height / 2 })
+    setTimeout(() => setFlyParticle(null), 560)
+  }
+  function addSimple(item: MenuItem, e?: React.MouseEvent) {
     setCart(prev => {
       const existing = prev.find(c => c.cartId === item.id)
       if (existing) return prev.map(c => c.cartId === item.id ? { ...c, quantity: c.quantity + 1 } : c)
@@ -261,8 +270,9 @@ export default function MenuPageClient({
     })
     setFlashItemId(item.id)
     setTimeout(() => setFlashItemId(null), 700)
+    if (e) triggerFly(e.clientX, e.clientY)
   }
-  function addWithModifiers(item: MenuItem, selectedModifiers: CartModifier[], qty: number) {
+  function addWithModifiers(item: MenuItem, selectedModifiers: CartModifier[], qty: number, srcY?: number) {
     setCart(prev => [...prev, {
       cartId: crypto.randomUUID(), menuItemId: item.id, name: item.name,
       basePrice: item.base_price, quantity: qty, modifiers: selectedModifiers, station: item.station,
@@ -270,6 +280,12 @@ export default function MenuPageClient({
     setFlashItemId(item.id)
     setTimeout(() => setFlashItemId(null), 700)
     setPickerItem(null)
+    const cartRect = cartBtnRef.current?.getBoundingClientRect()
+    if (cartRect) {
+      const fromX = window.innerWidth / 2
+      const fromY = srcY ?? window.innerHeight * 0.75
+      triggerFly(fromX, fromY)
+    }
   }
   function changeQty(cartId: string, delta: number) {
     setCart(prev => prev.map(c => c.cartId === cartId ? { ...c, quantity: c.quantity + delta } : c).filter(c => c.quantity > 0))
@@ -360,6 +376,7 @@ export default function MenuPageClient({
 
           {/* Cart icon */}
           <button
+            ref={cartBtnRef}
             onClick={() => cartCount > 0 && setCartOpen(true)}
             className="relative w-9 h-9 rounded-xl flex items-center justify-center text-gray-600 hover:bg-gray-100 active:bg-gray-200 transition-colors shrink-0"
           >
@@ -405,8 +422,13 @@ export default function MenuPageClient({
               return (
                 <button
                   key={cat.id}
-                  onClick={() => { setActiveCategoryId(cat.id); setView("items") }}
-                  className="relative rounded-2xl overflow-hidden aspect-square flex flex-col justify-end text-left active:scale-[0.97] transition-transform shadow-sm"
+                  onClick={() => {
+                    setPressId(cat.id)
+                    setTimeout(() => setPressId(null), 320)
+                    setActiveCategoryId(cat.id)
+                    setView("items")
+                  }}
+                  className={`relative rounded-2xl overflow-hidden aspect-square flex flex-col justify-end text-left shadow-sm ${pressId === cat.id ? "animate-item-press" : ""}`}
                 >
                   {/* Background */}
                   {firstImage ? (
@@ -493,8 +515,8 @@ export default function MenuPageClient({
                         {t.choose}
                       </button>
                     ) : qty === 0 ? (
-                      <button onClick={(e) => { e.stopPropagation(); addSimple(item) }}
-                        className="w-8 h-8 rounded-full flex items-center justify-center text-white transition-colors duration-300"
+                      <button onClick={(e) => { e.stopPropagation(); setPressId(item.id); setTimeout(() => setPressId(null), 320); addSimple(item, e) }}
+                        className={`w-8 h-8 rounded-full flex items-center justify-center text-white transition-colors duration-300 ${pressId === item.id ? "animate-item-press" : ""}`}
                         style={{ backgroundColor: flashItemId === item.id ? "#22c55e" : brandColor }}>
                         {flashItemId === item.id ? <Check size={16} /> : <Plus size={16} />}
                       </button>
@@ -506,7 +528,7 @@ export default function MenuPageClient({
                           <Minus size={14} />
                         </button>
                         <span className="text-sm font-bold w-4 text-center text-gray-900">{qty}</span>
-                        <button onClick={(e) => { e.stopPropagation(); addSimple(item) }}
+                        <button onClick={(e) => { e.stopPropagation(); addSimple(item, e) }}
                           className="w-7 h-7 rounded-full flex items-center justify-center text-white"
                           style={{ backgroundColor: brandColor }}>
                           <Plus size={14} />
@@ -539,9 +561,8 @@ export default function MenuPageClient({
         />
       )}
 
-      {/* Fixed bottom cart bar — always visible */}
-      {(view === "categories" || view === "items") && (
-        <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-sm border-t border-gray-100 px-4 pt-3 pb-5">
+      {/* Fixed bottom cart bar — always visible on every view */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-sm border-t border-gray-100 px-4 pt-3 pb-5">
           <div className="max-w-md mx-auto">
             <button
               onClick={() => cartCount > 0 && setCartOpen(true)}
@@ -559,7 +580,6 @@ export default function MenuPageClient({
             </button>
           </div>
         </div>
-      )}
 
       {/* Item detail sheet */}
       {detailItem && (
@@ -681,6 +701,22 @@ export default function MenuPageClient({
             localStorage.setItem(`ew-rated-${table.id}`, "1")
           }}
         />
+      )}
+      {/* Fly-to-cart particle */}
+      {flyParticle && (
+        <div
+          className="fixed z-[200] pointer-events-none animate-fly-to-cart"
+          style={{
+            "--fly-dx": `${flyParticle.toX - flyParticle.fromX}px`,
+            "--fly-dy": `${flyParticle.toY - flyParticle.fromY}px`,
+            left: `${flyParticle.fromX - 14}px`,
+            top: `${flyParticle.fromY - 14}px`,
+          } as React.CSSProperties}
+        >
+          <div className="w-7 h-7 rounded-full shadow-lg flex items-center justify-center" style={{ backgroundColor: brandColor }}>
+            <ShoppingCart size={13} className="text-white" />
+          </div>
+        </div>
       )}
     </div>
   )
