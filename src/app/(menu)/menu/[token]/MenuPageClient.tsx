@@ -339,7 +339,7 @@ export default function MenuPageClient({
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Sticky header */}
-      <header className="sticky top-0 z-30 bg-white border-b border-gray-100 shadow-sm">
+      <header className="sticky top-0 z-30 shadow-sm" style={{ backgroundColor: brandColor }}>
         <div className="max-w-md mx-auto px-3 h-14 flex items-center gap-2">
 
           {/* Back button */}
@@ -348,7 +348,7 @@ export default function MenuPageClient({
               if (view === "items" || view === "orders") setView("categories")
               else if (typeof window !== "undefined") window.history.back()
             }}
-            className="w-9 h-9 rounded-xl flex items-center justify-center text-gray-500 hover:bg-gray-100 active:bg-gray-200 transition-colors shrink-0"
+            className="w-9 h-9 rounded-xl flex items-center justify-center text-white hover:bg-white/10 active:bg-white/20 transition-colors shrink-0"
           >
             <ArrowLeft size={20} />
           </button>
@@ -358,17 +358,17 @@ export default function MenuPageClient({
             {view !== "items" && (
               venue.logo_url
                 ? <img src={venue.logo_url} alt={venue.name} className="w-7 h-7 rounded-lg object-cover shrink-0" />
-                : <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: `${brandColor}20` }}>
-                    <Coffee size={14} style={{ color: brandColor }} />
+                : <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 bg-white/15">
+                    <Coffee size={14} className="text-white" />
                   </div>
             )}
             <div className="min-w-0">
               {view === "items" ? (
-                <p className="font-bold text-gray-900 text-sm leading-tight truncate">{activeCategory?.name}</p>
+                <p className="font-bold text-white text-sm leading-tight truncate">{activeCategory?.name}</p>
               ) : (
                 <>
-                  <p className="font-bold text-gray-900 text-sm leading-tight truncate">{venue.name}</p>
-                  <p className="text-gray-400 text-xs">{t.table}: {table.name}</p>
+                  <p className="font-bold text-white text-sm leading-tight truncate">{venue.name}</p>
+                  <p className="text-white/70 text-xs">{t.table}: {table.name}</p>
                 </>
               )}
             </div>
@@ -378,21 +378,21 @@ export default function MenuPageClient({
           <button
             ref={cartBtnRef}
             onClick={() => cartCount > 0 && setCartOpen(true)}
-            className={`relative flex items-center justify-center text-gray-600 hover:bg-gray-100 active:bg-gray-200 transition-all shrink-0 ${cartCount > 0 ? "gap-1.5 px-2.5 h-9 rounded-xl" : "w-9 h-9 rounded-xl"}`}
+            className={`relative flex items-center justify-center text-white hover:bg-white/10 active:bg-white/20 transition-all shrink-0 ${cartCount > 0 ? "gap-1.5 px-2.5 h-9 rounded-xl" : "w-9 h-9 rounded-xl"}`}
           >
             <div className="relative">
               <ShoppingCart size={20} />
               {cartCount > 0 && (
                 <span
-                  className={`absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full text-[9px] font-bold flex items-center justify-center text-white transition-transform ${flashItemId ? "scale-125" : "scale-100"}`}
-                  style={{ backgroundColor: brandColor }}
+                  className={`absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full text-[9px] font-bold flex items-center justify-center transition-transform ${flashItemId ? "scale-125" : "scale-100"}`}
+                  style={{ backgroundColor: "white", color: brandColor }}
                 >
                   {cartCount}
                 </span>
               )}
             </div>
             {cartCount > 0 && (
-              <span className="text-sm font-bold text-gray-900 tabular-nums">
+              <span className="text-sm font-bold text-white tabular-nums">
                 {formatCurrency(cartTotal, venue.currency)}
               </span>
             )}
@@ -401,7 +401,7 @@ export default function MenuPageClient({
           {/* User / profile */}
           <button
             onClick={() => setUserMenuOpen(true)}
-            className="relative w-9 h-9 rounded-xl flex items-center justify-center text-gray-600 hover:bg-gray-100 active:bg-gray-200 transition-colors shrink-0"
+            className="relative w-9 h-9 rounded-xl flex items-center justify-center text-white hover:bg-white/10 active:bg-white/20 transition-colors shrink-0"
           >
             <User size={20} />
             {sessionId && trackingOrders.length > 0 && (
@@ -569,24 +569,28 @@ export default function MenuPageClient({
       )}
 
       {/* Fixed bottom cart bar — always visible on every view */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-sm border-t border-gray-100 px-4 pt-3 pb-5">
-          <div className="max-w-md mx-auto">
-            <button
-              onClick={() => cartCount > 0 && setCartOpen(true)}
-              disabled={cartCount === 0}
-              className="w-full flex items-center justify-between px-5 py-3.5 rounded-2xl text-white active:scale-[0.98] transition-all disabled:cursor-default"
-              style={{ backgroundColor: cartCount > 0 ? brandColor : "#d1d5db" }}
-            >
-              <div className="flex items-center gap-2">
-                <div className={`w-6 h-6 rounded-full bg-white/20 flex items-center justify-center text-xs font-bold transition-transform duration-200 ${flashItemId ? "scale-125" : ""}`}>
-                  {cartCount}
-                </div>
-                <span className="font-semibold text-sm">{cartCount === 0 ? "Košík je prázdny" : t.viewCart}</span>
+      <div className="fixed bottom-0 left-0 right-0 z-40 px-4 pt-3 pb-6" style={{ backgroundColor: brandColor }}>
+        <div className="max-w-md mx-auto">
+          <button
+            onClick={() => cartCount > 0 && setCartOpen(true)}
+            disabled={cartCount === 0}
+            className="w-full flex items-center justify-between px-5 py-3.5 rounded-2xl active:scale-[0.98] transition-all disabled:cursor-default"
+            style={{ backgroundColor: cartCount > 0 ? "rgba(255,255,255,0.18)" : "rgba(0,0,0,0.12)" }}
+          >
+            <div className="flex items-center gap-2">
+              <div className={`w-6 h-6 rounded-full bg-white/25 flex items-center justify-center text-xs font-bold text-white transition-transform duration-200 ${flashItemId ? "scale-125" : ""}`}>
+                {cartCount}
               </div>
-              <span className="font-bold text-sm">{formatCurrency(cartTotal, venue.currency)}</span>
-            </button>
-          </div>
+              <span className={`font-semibold text-sm ${cartCount > 0 ? "text-white" : "text-white/50"}`}>
+                {cartCount === 0 ? "Košík je prázdny" : t.viewCart}
+              </span>
+            </div>
+            <span className={`font-bold text-sm ${cartCount > 0 ? "text-white" : "text-white/50"}`}>
+              {formatCurrency(cartTotal, venue.currency)}
+            </span>
+          </button>
         </div>
+      </div>
 
       {/* Item detail sheet */}
       {detailItem && (

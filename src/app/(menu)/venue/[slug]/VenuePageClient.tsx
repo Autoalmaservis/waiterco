@@ -57,6 +57,7 @@ export default function VenuePageClient({ venue, categories, items, modifierGrou
   const [pickerItem, setPickerItem] = useState<MenuItem | null>(null)
   const [detailItem, setDetailItem] = useState<MenuItem | null>(null)
   const [orderMode, setOrderMode] = useState<"delivery" | "takeaway" | null>(null)
+  const [pressId, setPressId] = useState<string | null>(null)
 
   function hasModifiers(itemId: string) { return modifierGroups.some(g => g.item_id === itemId) }
   function itemGroupsFor(itemId: string) {
@@ -170,14 +171,48 @@ export default function VenuePageClient({ venue, categories, items, modifierGrou
         </div>
       </div>
 
-      {/* Tabs: Menu / Info */}
-      <div className="sticky top-0 z-30 bg-white border-b border-gray-100 shadow-sm">
-        <div className="max-w-lg mx-auto flex">
+      {/* Sticky orange header */}
+      <div className="sticky top-0 z-30 shadow-sm" style={{ backgroundColor: brand }}>
+        {/* Row 1: back + name + cart */}
+        <div className="max-w-lg mx-auto px-3 h-12 flex items-center gap-2">
+          <Link href="/restaurants"
+            className="w-8 h-8 rounded-xl flex items-center justify-center text-white hover:bg-white/10 active:bg-white/20 transition-colors shrink-0">
+            <ArrowLeft size={18} />
+          </Link>
+          <div className="flex-1 flex items-center gap-2 min-w-0">
+            {venue.logo_url && (
+              <img src={venue.logo_url} alt={venue.name} className="w-6 h-6 rounded-lg object-cover shrink-0" />
+            )}
+            <span className="font-bold text-white text-sm truncate">{venue.name}</span>
+          </div>
+          {/* Cart icon + total */}
+          <button
+            onClick={() => cartCount > 0 && setCartOpen(true)}
+            className={`relative flex items-center justify-center text-white hover:bg-white/10 active:bg-white/20 transition-all shrink-0 ${cartCount > 0 ? "gap-1.5 px-2.5 h-9 rounded-xl" : "w-9 h-9 rounded-xl"}`}
+          >
+            <div className="relative">
+              <ShoppingCart size={20} />
+              {cartCount > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full text-[9px] font-bold flex items-center justify-center"
+                  style={{ backgroundColor: "white", color: brand }}>
+                  {cartCount}
+                </span>
+              )}
+            </div>
+            {cartCount > 0 && (
+              <span className="text-sm font-bold text-white tabular-nums">
+                {formatCurrency(cartTotal, venue.currency)}
+              </span>
+            )}
+          </button>
+        </div>
+        {/* Row 2: tabs */}
+        <div className="max-w-lg mx-auto flex border-t border-white/20">
           {(["menu", "info"] as const).map(tab => (
             <button key={tab}
               onClick={() => { setActiveTab(tab); if (tab === "menu") setMenuView("categories") }}
-              className="flex-1 py-3 text-sm font-semibold transition-colors border-b-2 flex items-center justify-center gap-1.5"
-              style={activeTab === tab ? { color: brand, borderColor: brand } : { color: "#6b7280", borderColor: "transparent" }}
+              className="flex-1 py-2.5 text-sm font-semibold transition-colors border-b-2 flex items-center justify-center gap-1.5"
+              style={activeTab === tab ? { color: "white", borderColor: "white" } : { color: "rgba(255,255,255,0.6)", borderColor: "transparent" }}
             >
               {tab === "menu" && menuView === "items" && activeTab === "menu" && (
                 <ArrowLeft size={14} onClick={e => { e.stopPropagation(); setMenuView("categories") }} />
@@ -190,7 +225,7 @@ export default function VenuePageClient({ venue, categories, items, modifierGrou
 
       {/* Category tiles */}
       {activeTab === "menu" && menuView === "categories" && (
-        <div className="max-w-lg mx-auto px-4 pt-5 pb-32">
+        <div className="max-w-lg mx-auto px-4 pt-5 pb-28">
           <div className="grid grid-cols-2 gap-3">
             {categories.map(cat => {
               const catItems = items.filter(i => i.category_id === cat.id)
@@ -198,8 +233,8 @@ export default function VenuePageClient({ venue, categories, items, modifierGrou
               const firstImage = catItems.find(i => i.image_url)?.image_url ?? null
               return (
                 <button key={cat.id}
-                  onClick={() => { setActiveCategoryId(cat.id); setMenuView("items") }}
-                  className="relative rounded-2xl overflow-hidden aspect-square flex flex-col justify-end text-left active:scale-[0.97] transition-transform shadow-sm"
+                  onClick={() => { setPressId(cat.id); setTimeout(() => setPressId(null), 320); setActiveCategoryId(cat.id); setMenuView("items") }}
+                  className={`relative rounded-2xl overflow-hidden aspect-square flex flex-col justify-end text-left shadow-sm ${pressId === cat.id ? "animate-item-press" : ""}`}
                 >
                   {firstImage ? (
                     <img src={firstImage} alt={cat.name} className="absolute inset-0 w-full h-full object-cover" />
@@ -222,7 +257,7 @@ export default function VenuePageClient({ venue, categories, items, modifierGrou
 
       {/* Items in selected category */}
       {activeTab === "menu" && menuView === "items" && (
-        <div className="max-w-lg mx-auto pb-32">
+        <div className="max-w-lg mx-auto pb-28">
           {categories.find(c => c.id === activeCategoryId)?.description && (
             <p className="text-gray-500 text-sm px-4 pt-4">{categories.find(c => c.id === activeCategoryId)?.description}</p>
           )}
@@ -304,25 +339,32 @@ export default function VenuePageClient({ venue, categories, items, modifierGrou
         </div>
       )}
 
-      {/* Floating cart button */}
-      {cartCount > 0 && (
-        <div className="fixed bottom-6 left-0 right-0 z-40 flex justify-center px-4 pointer-events-none">
+      {/* Fixed bottom bar — always visible */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 px-4 pt-3 pb-6" style={{ backgroundColor: brand }}>
+        <div className="max-w-lg mx-auto">
           <button
-            onClick={() => setCartOpen(true)}
-            className="pointer-events-auto max-w-sm w-full flex items-center justify-between px-5 py-3.5 rounded-2xl text-white shadow-2xl"
-            style={{ backgroundColor: brand }}
+            onClick={() => cartCount > 0 && setCartOpen(true)}
+            disabled={cartCount === 0}
+            className="w-full flex items-center justify-between px-5 py-3.5 rounded-2xl active:scale-[0.98] transition-all disabled:cursor-default"
+            style={{ backgroundColor: cartCount > 0 ? "rgba(255,255,255,0.18)" : "rgba(0,0,0,0.12)" }}
           >
             <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center text-xs font-bold">{cartCount}</div>
-              <span className="font-semibold text-sm">Zobraziť košík</span>
+              <div className="w-6 h-6 rounded-full bg-white/25 flex items-center justify-center text-xs font-bold text-white">
+                {cartCount}
+              </div>
+              <span className={`font-semibold text-sm ${cartCount > 0 ? "text-white" : "text-white/50"}`}>
+                {cartCount === 0 ? "Košík je prázdny" : "Zobraziť košík"}
+              </span>
             </div>
             <div className="flex items-center gap-1">
-              <span className="font-bold text-sm">{formatCurrency(cartTotal, venue.currency)}</span>
-              <ChevronRight size={16} />
+              <span className={`font-bold text-sm ${cartCount > 0 ? "text-white" : "text-white/50"}`}>
+                {formatCurrency(cartTotal, venue.currency)}
+              </span>
+              {cartCount > 0 && <ChevronRight size={16} className="text-white" />}
             </div>
           </button>
         </div>
-      )}
+      </div>
 
       {/* Picker sheet */}
       {pickerItem && (
