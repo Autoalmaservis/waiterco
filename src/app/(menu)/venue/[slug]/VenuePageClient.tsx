@@ -676,8 +676,8 @@ function DeliveryCartSheet({ cart, brandColor, currency, total, venueId, orderMo
 
   if (success) {
     return (
-      <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50">
-        <div className="bg-white w-full max-w-md rounded-t-3xl p-8 text-center">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+        <div className="bg-white w-full max-w-md rounded-3xl p-8 text-center">
           <CheckCircle2 size={52} className="text-green-500 mx-auto mb-3" />
           <h3 className="font-bold text-gray-900 text-xl mb-1">Objednávka prijatá!</h3>
           <p className="text-gray-500 text-sm mb-6">
@@ -692,8 +692,8 @@ function DeliveryCartSheet({ cart, brandColor, currency, total, venueId, orderMo
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50" onClick={onClose}>
-      <div className="bg-white w-full max-w-md rounded-t-3xl max-h-[95vh] flex flex-col" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={onClose}>
+      <div className="bg-white w-full max-w-md rounded-3xl max-h-[88vh] flex flex-col" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-gray-100">
           <div>
             <h2 className="font-bold text-gray-900 text-lg">{orderMode === "delivery" ? "Donáška" : "Takeaway"}</h2>
@@ -867,8 +867,8 @@ function ModifierPickerSheet({ item, groups, modifiers, brandColor, currency, on
   const unitTotal = item.base_price + selectedMods.reduce((s, m) => s + m.price, 0)
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50" onClick={onClose}>
-      <div className="bg-white w-full max-w-md rounded-t-3xl max-h-[92vh] flex flex-col" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={onClose}>
+      <div className="bg-white w-full max-w-md rounded-3xl max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
         <div className="relative shrink-0">
           {item.image_url && <img src={item.image_url} alt={item.name} className="w-full h-44 object-cover rounded-t-3xl" />}
           <button onClick={onClose} className="absolute top-3 right-3 w-8 h-8 rounded-full bg-black/30 flex items-center justify-center backdrop-blur-sm">
