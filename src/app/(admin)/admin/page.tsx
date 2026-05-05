@@ -216,7 +216,7 @@ export default async function AdminDashboard({
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-900">#{order.order_number}</p>
                     <p className="text-xs text-gray-400 truncate">
-                      {new Date(order.created_at).toLocaleTimeString("sk-SK", { hour: "2-digit", minute: "2-digit" })}
+                      {new Date(order.created_at).toLocaleTimeString("sk-SK", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Bratislava" })}
                     </p>
                   </div>
                   <span
@@ -263,7 +263,7 @@ export default async function AdminDashboard({
                     </p>
                   </div>
                   <span className="text-xs text-gray-400">
-                    {new Date(call.created_at).toLocaleTimeString("sk-SK", { hour: "2-digit", minute: "2-digit" })}
+                    {new Date(call.created_at).toLocaleTimeString("sk-SK", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Bratislava" })}
                   </span>
                 </div>
               ))}

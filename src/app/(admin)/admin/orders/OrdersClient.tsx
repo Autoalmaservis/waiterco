@@ -4,7 +4,7 @@ import { useState, useTransition, Fragment } from "react"
 import { useRouter } from "next/navigation"
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu"
 import { ChevronDown, ChevronRight, Filter, Info, Truck, Package } from "lucide-react"
-import { formatCurrency, formatDate } from "@/lib/utils"
+import { formatCurrency } from "@/lib/utils"
 import type { Order, OrderStatus, VenueType } from "@/types/database"
 import { updateOrderStatus } from "./actions"
 
@@ -237,10 +237,10 @@ export default function OrdersClient({ orders, venues, tableMap, orderItems, pay
                       </td>
                       <td className="px-5 py-3.5">
                         <p className="text-xs text-gray-700">
-                          {new Date(order.created_at).toLocaleDateString("sk-SK", { day: "2-digit", month: "2-digit", year: "numeric" })}
+                          {new Date(order.created_at).toLocaleDateString("sk-SK", { day: "2-digit", month: "2-digit", year: "numeric", timeZone: "Europe/Bratislava" })}
                         </p>
                         <p className="text-xs text-gray-400">
-                          {new Date(order.created_at).toLocaleTimeString("sk-SK", { hour: "2-digit", minute: "2-digit" })}
+                          {new Date(order.created_at).toLocaleTimeString("sk-SK", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Bratislava" })}
                         </p>
                       </td>
                       <td className="px-5 py-3.5" onClick={e => e.stopPropagation()}>

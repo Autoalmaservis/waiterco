@@ -9,10 +9,16 @@ export function formatCurrency(amount: number, currency = "EUR"): string {
   return new Intl.NumberFormat("sk-SK", { style: "currency", currency }).format(amount)
 }
 
+const TZ = "Europe/Bratislava"
+
 export function formatDate(date: string | Date): string {
-  return new Intl.DateTimeFormat("sk-SK", { dateStyle: "medium", timeStyle: "short" }).format(new Date(date))
+  return new Intl.DateTimeFormat("sk-SK", { dateStyle: "medium", timeStyle: "short", timeZone: TZ }).format(new Date(date))
 }
 
 export function formatDateShort(date: string | Date): string {
-  return new Intl.DateTimeFormat("sk-SK", { dateStyle: "short" }).format(new Date(date))
+  return new Intl.DateTimeFormat("sk-SK", { dateStyle: "short", timeZone: TZ }).format(new Date(date))
+}
+
+export function formatTime(date: string | Date): string {
+  return new Intl.DateTimeFormat("sk-SK", { hour: "2-digit", minute: "2-digit", timeZone: TZ }).format(new Date(date))
 }
