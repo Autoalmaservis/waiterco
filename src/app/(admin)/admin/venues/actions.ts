@@ -76,7 +76,10 @@ export async function updateVenue(id: string, formData: FormData): Promise<{ err
       timezone: (formData.get("timezone") as string) || "Europe/Bratislava",
       primary_color: (formData.get("primary_color") as string) || null,
       closed_reason: (formData.get("closed_reason") as string) || null,
-    })
+      allow_delivery: formData.get("allow_delivery") === "true",
+      allow_takeaway: formData.get("allow_takeaway") === "true",
+      allow_qr: formData.get("allow_qr") === "true",
+    } as any)
     .eq("id", id)
     .eq("organization_id", ctx.org.id)
 

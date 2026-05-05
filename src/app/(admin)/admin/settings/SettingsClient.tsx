@@ -1,10 +1,11 @@
 "use client"
 
-import { useState, useTransition } from "react"
+import { useState, useTransition, useRef } from "react"
 import { useRouter } from "next/navigation"
+import { ImagePlus, Trash2 } from "lucide-react"
 import type { Venue, VenueType, OpeningHours, VenueClosure } from "@/types/database"
 import { updateVenue } from "../venues/actions"
-import { saveOpeningHours, changePassword } from "./actions"
+import { saveOpeningHours, changePassword, uploadVenueCoverImage } from "./actions"
 import ClosuresCalendar from "./ClosuresCalendar"
 
 function PasswordSection({ userEmail }: { userEmail: string }) {
@@ -181,13 +182,41 @@ export default function SettingsClient({ venue: initial, venues, selectedVenueId
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState("")
 
+  // Order modes
+  const [allowDelivery, setAllowDelivery] = useState<boolean>((initial as any).allow_delivery ?? true)
+  const [allowTakeaway, setAllowTakeaway] = useState<boolean>((initial as any).allow_takeaway ?? true)
+  const [allowQr, setAllowQr] = useState<boolean>((initial as any).allow_qr ?? true)
+
+  // Cover image
+  const [coverUrl, setCoverUrl] = useState<string | null>((initial as any).cover_image_url ?? null)
+  const [uploadPending, startUploadTransition] = useTransition()
+  const [uploadError, setUploadError] = useState("")
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
   const handleSave = (formData: FormData) => {
     setError("")
     setSuccess(false)
+    formData.set("allow_delivery", allowDelivery ? "true" : "false")
+    formData.set("allow_takeaway", allowTakeaway ? "true" : "false")
+    formData.set("allow_qr", allowQr ? "true" : "false")
     startTransition(async () => {
       const result = await updateVenue(selectedVenueId, formData)
       if (result?.error) { setError(result.error); return }
       setSuccess(true)
+      router.refresh()
+    })
+  }
+
+  function handleCoverUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploadError("")
+    const fd = new FormData()
+    fd.append("cover_image", file)
+    startUploadTransition(async () => {
+      const res = await uploadVenueCoverImage(selectedVenueId, fd)
+      if ("error" in res) { setUploadError(res.error); return }
+      setCoverUrl(res.url)
       router.refresh()
     })
   }
@@ -314,6 +343,32 @@ export default function SettingsClient({ venue: initial, venues, selectedVenueId
             </div>
           </div>
 
+          <div className="border-t border-gray-100" />
+
+          {/* Order modes */}
+          <div>
+            <h2 className="text-sm font-semibold text-gray-900 mb-1">Spôsoby objednávky</h2>
+            <p className="text-xs text-gray-400 mb-4">Zapni alebo vypni spôsoby akými môžu zákazníci objednávať</p>
+            <div className="space-y-3">
+              {([
+                { key: "delivery", label: "Donáška", desc: "Rozvoz jedla na adresu zákazníka", val: allowDelivery, set: setAllowDelivery },
+                { key: "takeaway", label: "Takeaway / Vyzdvihnutie", desc: "Zákazník si príde po objednávku osobne", val: allowTakeaway, set: setAllowTakeaway },
+                { key: "qr", label: "QR kód na stole", desc: "Objednávka priamo zo stola naskenovaním QR kódu", val: allowQr, set: setAllowQr },
+              ] as const).map(({ key, label, desc, val, set }) => (
+                <div key={key} className="flex items-center justify-between py-3 px-4 rounded-xl border border-gray-100 bg-gray-50">
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">{label}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">{desc}</p>
+                  </div>
+                  <button type="button" onClick={() => set(v => !v)}
+                    className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors ${val ? "bg-green-500" : "bg-gray-200"}`}>
+                    <span className={`inline-block h-5 w-5 rounded-full bg-white shadow transform transition-transform ${val ? "translate-x-5" : "translate-x-0"}`} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
           {error && <p className="text-sm text-red-600 bg-red-50 px-4 py-3 rounded-lg">{error}</p>}
           {success && <p className="text-sm text-green-700 bg-green-50 px-4 py-3 rounded-lg">Nastavenia boli uložené.</p>}
 
@@ -325,6 +380,43 @@ export default function SettingsClient({ venue: initial, venues, selectedVenueId
             </button>
           </div>
         </form>
+      </div>
+
+      {/* Cover image */}
+      <div className="bg-white rounded-xl border border-gray-100">
+        <div className="px-6 py-4 border-b border-gray-100">
+          <h2 className="text-sm font-semibold text-gray-900">Fotografia prevádzky</h2>
+          <p className="text-xs text-gray-400 mt-0.5">Úvodná fotografia zobrazená zákazníkom pri prehliadaní reštaurácií</p>
+        </div>
+        <div className="p-6">
+          {coverUrl ? (
+            <div className="relative mb-4 rounded-xl overflow-hidden h-48 bg-gray-100">
+              <img src={coverUrl} alt="Cover" className="w-full h-full object-cover" />
+              <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                <button type="button" onClick={() => fileInputRef.current?.click()}
+                  className="bg-white text-gray-800 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
+                  <ImagePlus size={15} /> Zmeniť foto
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button type="button" onClick={() => fileInputRef.current?.click()}
+              className="w-full h-36 border-2 border-dashed border-gray-200 rounded-xl flex flex-col items-center justify-center gap-2 hover:border-orange-300 hover:bg-orange-50 transition-colors mb-4">
+              <ImagePlus size={24} className="text-gray-300" />
+              <span className="text-sm text-gray-400">Kliknite pre nahratie fotografie</span>
+              <span className="text-xs text-gray-300">JPG, PNG, WEBP · max 5 MB</span>
+            </button>
+          )}
+          <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleCoverUpload} />
+          {uploadError && <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg mb-3">{uploadError}</p>}
+          {uploadPending && <p className="text-sm text-gray-500">Nahrávam fotografiu…</p>}
+          {coverUrl && (
+            <button type="button" onClick={() => fileInputRef.current?.click()}
+              className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-800 transition-colors">
+              <ImagePlus size={14} /> Nahradiť fotografiu
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Opening hours */}

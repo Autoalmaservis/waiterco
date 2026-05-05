@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache"
 import { createClient } from "@/lib/supabase/server"
+import { createAdminClient } from "@/lib/supabase/server"
 import { getAdminContext } from "@/lib/admin-context"
 
 async function verifyVenueAccess(venueId: string) {
@@ -58,6 +59,40 @@ export async function removeVenueClosure(id: string): Promise<{ error: string } 
   if (error) return { error: error.message }
   revalidatePath("/admin/settings")
   return null
+}
+
+export async function uploadVenueCoverImage(
+  venueId: string,
+  formData: FormData
+): Promise<{ error: string } | { url: string }> {
+  try { await verifyVenueAccess(venueId) } catch (e) { return { error: (e as Error).message } }
+
+  const file = formData.get("cover_image") as File | null
+  if (!file || file.size === 0) return { error: "Žiadny súbor" }
+  if (file.size > 5 * 1024 * 1024) return { error: "Súbor je príliš veľký (max 5 MB)" }
+
+  const ext = file.name.split(".").pop()?.toLowerCase() ?? "jpg"
+  const path = `venues/${venueId}/cover.${ext}`
+
+  const admin = createAdminClient()
+  const { error: upErr } = await (admin as any).storage
+    .from("venue-images")
+    .upload(path, file, { upsert: true, contentType: file.type })
+
+  if (upErr) return { error: upErr.message }
+
+  const { data } = (admin as any).storage.from("venue-images").getPublicUrl(path)
+  const url = `${data.publicUrl}?t=${Date.now()}`
+
+  const { error: dbErr } = await (admin as any)
+    .from("venues")
+    .update({ cover_image_url: url })
+    .eq("id", venueId)
+
+  if (dbErr) return { error: dbErr.message }
+
+  revalidatePath("/admin/settings")
+  return { url }
 }
 
 export async function changePassword(
