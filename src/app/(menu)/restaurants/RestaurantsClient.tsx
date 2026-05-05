@@ -144,11 +144,6 @@ export default function RestaurantsClient({
         )}
       </div>
 
-      {/* Tagline */}
-      <div className="px-5 mb-6">
-        <p className="text-white/40 text-sm">Čo chceš urobiť?</p>
-      </div>
-
       {/* Tiles */}
       <div className="flex-1 flex flex-col px-4 gap-3 pb-8">
 
@@ -245,7 +240,7 @@ function QRScannerModal({ onClose }: { onClose: () => void }) {
 
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } },
+          video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } },
         })
         streamRef.current = stream
         if (videoRef.current) {
@@ -312,7 +307,7 @@ function QRScannerModal({ onClose }: { onClose: () => void }) {
         {mode === "scanning" && (
           <div className="w-full max-w-sm">
             <div className="relative rounded-2xl overflow-hidden bg-black aspect-square">
-              <video ref={videoRef} className="w-full h-full object-cover" playsInline muted />
+              <video ref={videoRef} className="w-full h-full object-cover" playsInline autoPlay muted />
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                 <div className="w-52 h-52 relative">
                   {[
