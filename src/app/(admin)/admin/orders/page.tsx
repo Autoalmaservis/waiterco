@@ -39,22 +39,39 @@ export default async function OrdersPage() {
 
   const orders = ordersResult.data ?? []
   const orderIds = orders.map((o) => o.id)
+  const sessionIds = [...new Set(orders.map((o) => o.session_id).filter(Boolean))]
 
   let orderItems: { id: string; order_id: string; name: string; quantity: number; unit_price: number; total_price: number; status: string }[] = []
-  if (orderIds.length > 0) {
-    const { data } = await (supabase as any)
-      .from("order_items")
-      .select("id, order_id, name, quantity, unit_price, total_price, status")
-      .in("order_id", orderIds)
-      .neq("status", "cancelled")
-    orderItems = data ?? []
-  }
+  let paymentMap: Record<string, string> = {}
+
+  await Promise.all([
+    orderIds.length > 0
+      ? (supabase as any)
+          .from("order_items")
+          .select("id, order_id, name, quantity, unit_price, total_price, status")
+          .in("order_id", orderIds)
+          .neq("status", "cancelled")
+          .then(({ data }: any) => { orderItems = data ?? [] })
+      : Promise.resolve(),
+    sessionIds.length > 0
+      ? supabase
+          .from("payments")
+          .select("session_id, payment_method")
+          .in("session_id", sessionIds)
+          .eq("status", "completed")
+          .then(({ data }) => {
+            for (const p of data ?? []) {
+              if (p.session_id) paymentMap[p.session_id] = p.payment_method
+            }
+          })
+      : Promise.resolve(),
+  ])
 
   const tableMap = Object.fromEntries((tablesResult.data ?? []).map((t) => [t.id, t.name]))
 
   return (
     <div className="p-8">
-      <OrdersClient orders={orders} venues={ctx.venues} tableMap={tableMap} orderItems={orderItems} />
+      <OrdersClient orders={orders} venues={ctx.venues} tableMap={tableMap} orderItems={orderItems} paymentMap={paymentMap} />
     </div>
   )
 }

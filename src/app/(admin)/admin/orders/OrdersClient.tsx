@@ -45,6 +45,7 @@ interface Props {
   venues: VenueOption[]
   tableMap: Record<string, string>
   orderItems: OrderItemRow[]
+  paymentMap: Record<string, string>
 }
 
 function periodStart(period: Period): Date {
@@ -61,7 +62,7 @@ function orderTypeLabel(order: any) {
   return null
 }
 
-export default function OrdersClient({ orders, venues, tableMap, orderItems }: Props) {
+export default function OrdersClient({ orders, venues, tableMap, orderItems, paymentMap }: Props) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [statusFilter, setStatusFilter] = useState<OrderStatus | "all">("all")
@@ -228,6 +229,11 @@ export default function OrdersClient({ orders, venues, tableMap, orderItems }: P
                       </td>
                       <td className="px-5 py-3.5">
                         <p className="text-sm font-semibold text-gray-900">{formatCurrency(Number(order.total_amount))}</p>
+                        {paymentMap[order.session_id] && (
+                          <span className={`text-xs font-medium px-1.5 py-0.5 rounded-full ${paymentMap[order.session_id] === "card" ? "bg-blue-100 text-blue-700" : "bg-green-100 text-green-700"}`}>
+                            {paymentMap[order.session_id] === "card" ? "💳 Karta" : "💵 Hotovosť"}
+                          </span>
+                        )}
                       </td>
                       <td className="px-5 py-3.5">
                         <p className="text-xs text-gray-700">

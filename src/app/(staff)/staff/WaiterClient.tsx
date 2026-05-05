@@ -1256,14 +1256,14 @@ function TablePaySheet({ tableName, orders, items, session, venueId, lastPayment
     ? String(parseInt(session.id.replace(/-/g, "").substring(0, 9), 16) % 100000000).padStart(8, "0")
     : "00000000"
 
-  function handleConfirmCash() {
+  function handleConfirm(method: "cash" | "card") {
     if (!session || !canPay) return
     const toPayItems = mode === "all"
       ? unpaidItems.map(i => ({ itemId: i.id, quantity: i.quantity }))
       : unpaidItems.filter(i => (splitQty.get(i.id) ?? 0) > 0).map(i => ({ itemId: i.id, quantity: splitQty.get(i.id)! }))
     setError(null)
     startTransition(async () => {
-      const res = await payItemQuantities(toPayItems, session.id, venueId, selectedTotal, "cash")
+      const res = await payItemQuantities(toPayItems, session.id, venueId, selectedTotal, method)
       if (res?.error) { setError(res.error); return }
       onSuccess()
     })
@@ -1514,22 +1514,26 @@ function TablePaySheet({ tableName, orders, items, session, venueId, lastPayment
             {/* Confirm footer */}
             <div className="border-t border-gray-800 bg-gray-900 p-4 shrink-0 space-y-3">
               {error && <p className="text-red-400 text-xs px-1">{error}</p>}
-              <button
-                onClick={handleConfirmCash}
-                disabled={isPending || !session}
-                className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl text-white font-bold text-base disabled:opacity-50 transition-opacity active:opacity-90"
-                style={{ backgroundColor: "#166534" }}
-              >
-                <Banknote size={20} />
-                {isPending ? "Spracovávam..." : "Potvrdiť platbu — Hotovosť"}
-              </button>
-              <button
-                disabled
-                className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl text-gray-500 font-medium text-sm border border-gray-800 opacity-40 cursor-not-allowed"
-              >
-                <CreditCard size={16} />
-                Terminál · čoskoro
-              </button>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={() => handleConfirm("cash")}
+                  disabled={isPending || !session}
+                  className="flex items-center justify-center gap-2 py-4 rounded-2xl text-white font-bold text-base disabled:opacity-50 transition-opacity active:opacity-90"
+                  style={{ backgroundColor: "#166534" }}
+                >
+                  <Banknote size={18} />
+                  {isPending ? "..." : "Hotovosť"}
+                </button>
+                <button
+                  onClick={() => handleConfirm("card")}
+                  disabled={isPending || !session}
+                  className="flex items-center justify-center gap-2 py-4 rounded-2xl text-white font-bold text-base disabled:opacity-50 transition-opacity active:opacity-90"
+                  style={{ backgroundColor: "#1d4ed8" }}
+                >
+                  <CreditCard size={18} />
+                  {isPending ? "..." : "Karta"}
+                </button>
+              </div>
             </div>
           </>
         )}
