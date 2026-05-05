@@ -202,14 +202,7 @@ export default function VenuePageClient({ venue, categories, items, modifierGrou
 
       {/* Sticky orange header */}
       <div className="sticky top-0 z-30 shadow-sm" style={{ backgroundColor: brand }}>
-        {/* Row 1: back only */}
-        <div className="max-w-lg mx-auto px-3 h-11 flex items-center gap-2">
-          <Link href="/restaurants"
-            className="w-8 h-8 rounded-xl flex items-center justify-center text-white hover:bg-white/10 active:bg-white/20 transition-colors shrink-0">
-            <ArrowLeft size={18} />
-          </Link>
-        </div>
-        {/* Row 2: tabs */}
+        {/* Tabs only */}
         <div className="max-w-lg mx-auto flex border-t border-white/20">
           {(["menu", "info"] as const).map(tab => (
             <button key={tab}
@@ -485,12 +478,9 @@ function VenueReviewSheet({ venueId, brand, onClose, onAddReview }: {
   }, [venueId])
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50" onClick={onClose}>
-      <div className="bg-white w-full max-w-md rounded-t-3xl max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
-        <div className="flex justify-center pt-3 pb-1 shrink-0">
-          <div className="w-10 h-1 rounded-full bg-gray-200" />
-        </div>
-        <div className="flex items-center justify-between px-5 pt-2 pb-3 border-b border-gray-100 shrink-0">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={onClose}>
+      <div className="bg-white w-full max-w-md rounded-3xl max-h-[82vh] flex flex-col" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-gray-100 shrink-0">
           <div>
             <h3 className="font-bold text-gray-900 text-lg">Hodnotenia</h3>
             {!loading && reviews.length > 0 && (
@@ -569,8 +559,8 @@ function VenueRatingModal({ venueName, venueId, brand, onClose }: {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60" onClick={onClose}>
-      <div className="bg-white w-full max-w-md rounded-t-3xl" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60" onClick={onClose}>
+      <div className="bg-white w-full max-w-md rounded-3xl" onClick={e => e.stopPropagation()}>
         <div className="px-5 pt-6 pb-8">
           {submitted ? (
             <div className="text-center py-8">
@@ -803,9 +793,9 @@ function ItemDetailSheet({ item, brandColor, currency, qty, onAdd, onRemove, onC
   onAdd: () => void; onRemove: () => void; onClose: () => void
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50" onClick={onClose}>
-      <div className="bg-white w-full max-w-md rounded-t-3xl max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-        {item.image_url && <img src={item.image_url} alt={item.name} className="w-full h-52 object-cover" />}
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={onClose}>
+      <div className="bg-white w-full max-w-md rounded-3xl max-h-[75vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        {item.image_url && <img src={item.image_url} alt={item.name} className="w-full h-44 object-cover rounded-t-3xl" />}
         <div className="px-5 pt-4 pb-8">
           <div className="flex items-start justify-between gap-3 mb-3">
             <h3 className="font-bold text-gray-900 text-xl leading-tight">{item.name}</h3>

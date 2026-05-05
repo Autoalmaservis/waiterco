@@ -151,8 +151,6 @@ export default function MenuPageClient({
   const [waiterMessage, setWaiterMessage] = useState("")
   const [billState, setBillState] = useState<"idle" | "pending" | "done">("idle")
   const [paymentSheetOpen, setPaymentSheetOpen] = useState(false)
-  const [paymentSplitPeople, setPaymentSplitPeople] = useState(1)
-  const [paymentMethod, setPaymentMethod] = useState<"cash" | "card">("card")
   const [reviewsOpen, setReviewsOpen] = useState(false)
   const [manualRatingOpen, setManualRatingOpen] = useState(false)
   const [venueInfoOpen, setVenueInfoOpen] = useState(false)
@@ -354,12 +352,14 @@ export default function MenuPageClient({
     if (!ratingDone) setTimeout(() => setRatingOpen(true), 700)
   }
 
-  async function handlePaymentRequest() {
+  async function handlePaymentRequest(selectedIds: string[], method: "cash" | "card") {
     setBillState("pending")
-    const methodLabel = paymentMethod === "cash" ? t.cash : t.card
-    const note = paymentSplitPeople > 1
-      ? `${methodLabel} · ${paymentSplitPeople} ${t.people}`
-      : methodLabel
+    const methodLabel = method === "cash" ? t.cash : t.card
+    const allItems = trackingOrders.flatMap(o => o.items.filter(i => i.status !== "cancelled"))
+    const isAll = selectedIds.length >= allItems.length
+    const selectedItems = allItems.filter(i => selectedIds.includes(i.id))
+    const itemsNote = isAll ? "" : selectedItems.map(i => `${i.name}×${i.quantity}`).join(", ")
+    const note = itemsNote ? `${methodLabel} · ${itemsNote}` : methodLabel
     await requestBill(table.id, venue.id, sessionId, note)
     setBillState("done")
     setPaymentSheetOpen(false)
@@ -422,10 +422,10 @@ export default function MenuPageClient({
             className="relative w-9 h-9 rounded-xl flex items-center justify-center text-white hover:bg-white/10 active:bg-white/20 transition-colors shrink-0"
           >
             <User size={20} />
-            {sessionId && trackingOrders.length > 0 && (
+            {sessionId && trackingOrders.length > 0 && sessionStatus !== "closed" && (
               <span
                 className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full text-[9px] font-bold flex items-center justify-center text-white"
-                style={{ backgroundColor: sessionStatus === "closed" ? "#16a34a" : "#e11d48" }}
+                style={{ backgroundColor: "#e11d48" }}
               >
                 {trackingOrders.length}
               </span>
@@ -624,12 +624,10 @@ export default function MenuPageClient({
           {/* Slot 2: € payment */}
           <button
             onClick={() => {
-              if (!sessionId || grandTotal === 0) return
-              setPaymentSplitPeople(1)
-              setPaymentMethod("card")
+              if (!sessionId || grandTotal === 0 || sessionStatus === "closed") return
               setPaymentSheetOpen(true)
             }}
-            disabled={!sessionId || grandTotal === 0}
+            disabled={!sessionId || grandTotal === 0 || sessionStatus === "closed"}
             className="w-12 rounded-2xl flex flex-col items-center justify-center gap-1 bg-black/20 hover:bg-black/30 active:bg-black/35 transition-colors shrink-0 disabled:opacity-40"
           >
             <Euro size={20} className="text-white" />
@@ -741,13 +739,9 @@ export default function MenuPageClient({
 
       {/* User menu sheet */}
       {userMenuOpen && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40" onClick={() => setUserMenuOpen(false)}>
-          <div className="bg-white w-full max-w-md rounded-t-3xl overflow-hidden pb-safe" onClick={e => e.stopPropagation()}>
-            {/* Handle */}
-            <div className="flex justify-center pt-3 pb-1">
-              <div className="w-10 h-1 rounded-full bg-gray-200" />
-            </div>
-            <div className="px-5 pt-2 pb-6 space-y-2">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40" onClick={() => setUserMenuOpen(false)}>
+          <div className="bg-white w-full max-w-md rounded-3xl overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="px-5 pt-5 pb-5 space-y-2">
               {/* Venue info */}
               {(venue.description || venue.address || venue.city) && (
                 <div className="px-4 py-3.5 rounded-2xl bg-gray-50">
@@ -819,13 +813,10 @@ export default function MenuPageClient({
 
       {/* Waiter action sheet */}
       {waiterSheetOpen && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50"
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
           onClick={() => { setWaiterSheetOpen(false); setWaiterSheetMsgOpen(false); setWaiterMessage("") }}>
-          <div className="bg-white w-full max-w-md rounded-t-3xl" onClick={e => e.stopPropagation()}>
-            <div className="flex justify-center pt-3 pb-1">
-              <div className="w-10 h-1 rounded-full bg-gray-200" />
-            </div>
-            <div className="px-5 pt-2 pb-8 space-y-2">
+          <div className="bg-white w-full max-w-md rounded-3xl" onClick={e => e.stopPropagation()}>
+            <div className="px-5 pt-5 pb-5 space-y-2">
               <p className="text-center text-sm font-semibold text-gray-400 mb-3">Čo potrebujete?</p>
 
               {/* Call waiter */}
@@ -911,15 +902,12 @@ export default function MenuPageClient({
       {/* Payment sheet */}
       {paymentSheetOpen && (
         <PaymentSheet
+          orders={trackingOrders}
           grandTotal={grandTotal}
-          splitPeople={paymentSplitPeople}
-          method={paymentMethod}
           brandColor={brandColor}
           currency={venue.currency}
           t={t}
           isPending={billState === "pending"}
-          onSplitChange={setPaymentSplitPeople}
-          onMethodChange={setPaymentMethod}
           onConfirm={handlePaymentRequest}
           onClose={() => setPaymentSheetOpen(false)}
         />
@@ -1172,12 +1160,12 @@ function RatingModal({ venueName, venueId, sessionId, brandColor, t, onClose, on
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60" onClick={onClose}>
       <div
-        className="bg-white w-full max-w-md rounded-t-3xl max-h-[90vh] overflow-y-auto"
+        className="bg-white w-full max-w-md rounded-3xl max-h-[85vh] overflow-y-auto"
         onClick={e => e.stopPropagation()}
       >
-        <div className="px-5 pt-6 pb-8">
+        <div className="px-5 pt-6 pb-6">
           {submitted ? (
             <div className="text-center py-8">
               <CheckCircle2 size={52} className="text-green-500 mx-auto mb-3" />
@@ -1495,99 +1483,133 @@ function CartDrawer({ cart, brandColor, currency, total, notes, t, onNotesChange
 }
 
 // ─── Payment sheet ────────────────────────────────────────────────────────────
-function PaymentSheet({ grandTotal, splitPeople, method, brandColor, currency, t, isPending, onSplitChange, onMethodChange, onConfirm, onClose }: {
-  grandTotal: number; splitPeople: number; method: "cash" | "card"
+function PaymentSheet({ orders, grandTotal, brandColor, currency, t, isPending, onConfirm, onClose }: {
+  orders: TrackingOrder[]; grandTotal: number
   brandColor: string; currency: string; t: typeof T.sk
   isPending: boolean
-  onSplitChange: (n: number) => void
-  onMethodChange: (m: "cash" | "card") => void
-  onConfirm: () => void
+  onConfirm: (selectedIds: string[], method: "cash" | "card") => void
   onClose: () => void
 }) {
-  const perPerson = splitPeople > 1 ? grandTotal / splitPeople : null
+  const allItems = orders.flatMap(o =>
+    o.items.filter(i => i.status !== "cancelled").map(i => ({ ...i, orderNum: o.order_number, orderTime: o.created_at }))
+  )
+  const [selectedIds, setSelectedIds] = useState<string[]>(() => allItems.map(i => i.id))
+  const [method, setMethod] = useState<"cash" | "card">("card")
+
+  const allSelected = selectedIds.length === allItems.length
+  function toggleItem(id: string) {
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
+  }
+  function toggleAll() {
+    setSelectedIds(allSelected ? [] : allItems.map(i => i.id))
+  }
+
+  const selectedTotal = allItems
+    .filter(i => selectedIds.includes(i.id))
+    .reduce((s, i) => s + i.unit_price * i.quantity, 0)
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50" onClick={onClose}>
-      <div className="bg-white w-full max-w-md rounded-t-3xl" onClick={e => e.stopPropagation()}>
-        <div className="flex justify-center pt-3 pb-1">
-          <div className="w-10 h-1 rounded-full bg-gray-200" />
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={onClose}>
+      <div className="bg-white w-full max-w-md rounded-3xl max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 pt-5 pb-3 border-b border-gray-100 shrink-0">
+          <h3 className="font-bold text-gray-900 text-lg">{t.payment}</h3>
+          <button onClick={onClose} className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
+            <X size={16} className="text-gray-500" />
+          </button>
         </div>
-        <div className="px-5 pt-3 pb-8 space-y-5">
-          {/* Header */}
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="font-bold text-gray-900 text-lg">{t.payment}</h3>
-              <p className="text-gray-400 text-sm">{t.total}: <span className="font-bold text-gray-900">{formatCurrency(grandTotal, currency)}</span></p>
-            </div>
-            <button onClick={onClose} className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
-              <X size={16} className="text-gray-500" />
-            </button>
-          </div>
 
-          {/* Payment method */}
-          <div>
-            <p className="text-sm font-semibold text-gray-700 mb-2">{t.paymentMethod}</p>
-            <div className="grid grid-cols-2 gap-2">
-              {(["card", "cash"] as const).map(m => {
-                const isActive = method === m
-                const Icon = m === "card" ? CreditCard : Banknote
-                const label = m === "card" ? t.card : t.cash
-                return (
-                  <button
-                    key={m}
-                    onClick={() => onMethodChange(m)}
-                    className="flex items-center gap-2.5 px-4 py-3 rounded-2xl border-2 transition-colors"
-                    style={{
-                      borderColor: isActive ? brandColor : "#e5e7eb",
-                      backgroundColor: isActive ? `${brandColor}0f` : "white",
-                    }}
-                  >
-                    <Icon size={20} style={{ color: isActive ? brandColor : "#9ca3af" }} />
-                    <span className="font-semibold text-sm" style={{ color: isActive ? brandColor : "#374151" }}>{label}</span>
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-
-          {/* Split bill */}
-          <div>
-            <p className="text-sm font-semibold text-gray-700 mb-2">{t.splitBill}</p>
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => onSplitChange(Math.max(1, splitPeople - 1))}
-                className="w-9 h-9 rounded-full border border-gray-200 flex items-center justify-center text-gray-600"
-              >
-                <Minus size={15} />
-              </button>
-              <span className="flex-1 text-center font-bold text-gray-900 text-base">
-                {splitPeople === 1 ? "Bez rozdelenia" : `${splitPeople} ${t.people}`}
-              </span>
-              <button
-                onClick={() => onSplitChange(Math.min(20, splitPeople + 1))}
-                className="w-9 h-9 rounded-full border border-gray-200 flex items-center justify-center text-gray-600"
-              >
-                <Plus size={15} />
-              </button>
-            </div>
-            {perPerson !== null && (
-              <p className="text-center text-sm text-gray-500 mt-2">
-                <span className="font-bold text-gray-900">{formatCurrency(perPerson, currency)}</span> {t.perPerson}
-              </p>
-            )}
-          </div>
-
-          {/* Confirm */}
+        {/* Item list */}
+        <div className="flex-1 overflow-y-auto px-5 py-3 space-y-4">
+          {/* Select all toggle */}
           <button
-            onClick={onConfirm}
-            disabled={isPending}
-            className="w-full py-3.5 rounded-2xl text-white font-bold text-base flex items-center justify-center gap-2 disabled:opacity-60 active:scale-[0.98] transition-all"
+            onClick={toggleAll}
+            className="w-full flex items-center justify-between py-2 text-sm"
+          >
+            <span className="font-semibold text-gray-700">
+              {allSelected ? "Zrušiť výber" : "Vybrať všetko"}
+            </span>
+            <div
+              className="w-5 h-5 rounded flex items-center justify-center border-2 transition-colors"
+              style={{ borderColor: allSelected ? brandColor : "#d1d5db", backgroundColor: allSelected ? brandColor : "transparent" }}
+            >
+              {allSelected && <Check size={12} className="text-white" />}
+            </div>
+          </button>
+
+          {orders.map(order => {
+            const orderItems = order.items.filter(i => i.status !== "cancelled")
+            if (orderItems.length === 0) return null
+            return (
+              <div key={order.id}>
+                <p className="text-xs text-gray-400 font-medium mb-1.5">
+                  {t.orderNumber} {order.order_number} · {new Date(order.created_at).toLocaleTimeString("sk-SK", { hour: "2-digit", minute: "2-digit" })}
+                </p>
+                <div className="space-y-1">
+                  {orderItems.map(item => {
+                    const isSelected = selectedIds.includes(item.id)
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => toggleItem(item.id)}
+                        className="w-full flex items-center gap-3 py-2.5 px-3 rounded-xl transition-colors"
+                        style={{ backgroundColor: isSelected ? `${brandColor}0d` : "#f9fafb" }}
+                      >
+                        <div
+                          className="w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-colors"
+                          style={{ borderColor: isSelected ? brandColor : "#d1d5db", backgroundColor: isSelected ? brandColor : "transparent" }}
+                        >
+                          {isSelected && <Check size={11} className="text-white" />}
+                        </div>
+                        <div className="flex-1 text-left min-w-0">
+                          <p className="text-sm text-gray-900 leading-snug truncate">{item.name} ×{item.quantity}</p>
+                          {item.modifiers.length > 0 && (
+                            <p className="text-xs text-gray-400 truncate">{item.modifiers.map(m => m.name).join(", ")}</p>
+                          )}
+                        </div>
+                        <span className="text-sm font-semibold shrink-0" style={{ color: isSelected ? brandColor : "#9ca3af" }}>
+                          {formatCurrency(item.unit_price * item.quantity, currency)}
+                        </span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
+        {/* Footer */}
+        <div className="shrink-0 px-5 py-4 border-t border-gray-100 space-y-3">
+          {/* Payment method */}
+          <div className="grid grid-cols-2 gap-2">
+            {(["card", "cash"] as const).map(m => {
+              const isActive = method === m
+              const Icon = m === "card" ? CreditCard : Banknote
+              const label = m === "card" ? t.card : t.cash
+              return (
+                <button key={m} onClick={() => setMethod(m)}
+                  className="flex items-center justify-center gap-2 py-2.5 rounded-xl border-2 transition-colors"
+                  style={{ borderColor: isActive ? brandColor : "#e5e7eb", backgroundColor: isActive ? `${brandColor}0f` : "white" }}
+                >
+                  <Icon size={18} style={{ color: isActive ? brandColor : "#9ca3af" }} />
+                  <span className="font-semibold text-sm" style={{ color: isActive ? brandColor : "#6b7280" }}>{label}</span>
+                </button>
+              )
+            })}
+          </div>
+          {/* Total + confirm */}
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-sm text-gray-500">{t.total}</span>
+            <span className="font-black text-lg" style={{ color: brandColor }}>{formatCurrency(selectedTotal, currency)}</span>
+          </div>
+          <button
+            onClick={() => onConfirm(selectedIds, method)}
+            disabled={isPending || selectedIds.length === 0}
+            className="w-full py-3.5 rounded-2xl text-white font-bold text-base flex items-center justify-center gap-2 disabled:opacity-50 active:scale-[0.98] transition-all"
             style={{ backgroundColor: brandColor }}
           >
-            {isPending
-              ? <Loader2 size={18} className="animate-spin" />
-              : <><Euro size={18} />{t.confirmPayment}</>
-            }
+            {isPending ? <Loader2 size={18} className="animate-spin" /> : <><Euro size={18} />{t.confirmPayment}</>}
           </button>
         </div>
       </div>
@@ -1600,12 +1622,9 @@ function VenueInfoSheet({ venue, brandColor, onClose }: {
   venue: VenueInfo; brandColor: string; onClose: () => void
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50" onClick={onClose}>
-      <div className="bg-white w-full max-w-md rounded-t-3xl" onClick={e => e.stopPropagation()}>
-        <div className="flex justify-center pt-3 pb-1">
-          <div className="w-10 h-1 rounded-full bg-gray-200" />
-        </div>
-        <div className="px-5 pt-3 pb-8 space-y-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={onClose}>
+      <div className="bg-white w-full max-w-md rounded-3xl" onClick={e => e.stopPropagation()}>
+        <div className="px-5 pt-5 pb-5 space-y-4">
           <div className="flex items-center gap-3">
             {venue.logo_url ? (
               <img src={venue.logo_url} alt={venue.name} className="w-14 h-14 rounded-2xl object-cover shrink-0" />
@@ -1657,12 +1676,9 @@ function ReviewsSheet({ venueId, brandColor, t, onClose, onAddReview }: {
   }, [venueId])
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50" onClick={onClose}>
-      <div className="bg-white w-full max-w-md rounded-t-3xl max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
-        <div className="flex justify-center pt-3 pb-1 shrink-0">
-          <div className="w-10 h-1 rounded-full bg-gray-200" />
-        </div>
-        <div className="flex items-center justify-between px-5 pt-2 pb-3 border-b border-gray-100 shrink-0">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={onClose}>
+      <div className="bg-white w-full max-w-md rounded-3xl max-h-[82vh] flex flex-col" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-gray-100 shrink-0">
           <div>
             <h3 className="font-bold text-gray-900 text-lg">Hodnotenia</h3>
             {!loading && reviews.length > 0 && (
