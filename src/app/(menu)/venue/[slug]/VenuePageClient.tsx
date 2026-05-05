@@ -228,6 +228,16 @@ export default function VenuePageClient({ venue, categories, items, modifierGrou
         </div>
       </div>
 
+      {/* Closed banner */}
+      {!venue.is_open && (
+        <div className="max-w-lg mx-auto px-4 pt-4">
+          <div className="rounded-2xl px-4 py-3 text-sm font-medium text-center" style={{ backgroundColor: "#fef2f2", color: "#991b1b" }}>
+            Prevádzka je momentálne zatvorená — objednávky nie sú možné.
+            {venue.closed_reason && <span className="block text-xs opacity-75 mt-0.5">{venue.closed_reason}</span>}
+          </div>
+        </div>
+      )}
+
       {/* Category tiles */}
       {activeTab === "menu" && menuView === "categories" && (
         <div className="max-w-lg mx-auto px-4 pt-5 pb-28">
@@ -274,8 +284,8 @@ export default function VenuePageClient({ venue, categories, items, modifierGrou
                 <div key={item.id}
                   className={`bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden ${!item.is_available ? "opacity-60" : ""}`}>
                   <button className="w-full text-left"
-                    onClick={() => { if (!item.is_available) return; if (withMods) setPickerItem(item); else setDetailItem(item) }}
-                    disabled={!item.is_available}
+                    onClick={() => { if (!item.is_available || !venue.is_open) return; if (withMods) setPickerItem(item); else setDetailItem(item) }}
+                    disabled={!item.is_available || !venue.is_open}
                   >
                     <div className="flex gap-3 p-3">
                       {item.image_url && (
@@ -300,8 +310,8 @@ export default function VenuePageClient({ venue, categories, items, modifierGrou
                   </button>
                   <div className="flex items-center justify-between px-3 pb-3">
                     <span className="font-bold text-sm" style={{ color: brand }}>{formatCurrency(item.base_price, venue.currency)}</span>
-                    {!item.is_available ? (
-                      <span className="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded-lg">Nedostupné</span>
+                    {!item.is_available || !venue.is_open ? (
+                      <span className="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded-lg">{!item.is_available ? "Nedostupné" : "Zatvorené"}</span>
                     ) : withMods ? (
                       <button onClick={() => setPickerItem(item)} className="px-3 py-1.5 rounded-xl text-white text-xs font-semibold" style={{ backgroundColor: brand }}>Vybrať</button>
                     ) : qty === 0 ? (

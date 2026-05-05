@@ -267,7 +267,7 @@ export default function MenuPageClient({
     return modifierGroups.filter(g => g.item_id === itemId).sort((a, b) => a.sort_order - b.sort_order)
   }
   function handleItemClick(item: MenuItem) {
-    if (!item.is_available) return
+    if (!item.is_available || isClosed) return
     if (hasModifiers(item.id)) setPickerItem(item)
     else setDetailItem(item)
   }
@@ -368,7 +368,7 @@ export default function MenuPageClient({
 
   const t = T[lang]
 
-  if (!venue.is_open) return <ClosedScreen venueName={venue.name} reason={venue.closed_reason} brandColor={brandColor} />
+  const isClosed = !venue.is_open
 
   const activeCategory = categories.find(c => c.id === activeCategoryId)
   const categoryItems = items.filter(i => i.category_id === activeCategoryId)
@@ -434,6 +434,15 @@ export default function MenuPageClient({
         </div>
       </header>
 
+      {isClosed && (
+        <div className="max-w-md mx-auto px-4 pt-3">
+          <div className="rounded-2xl px-4 py-3 text-sm font-medium text-center" style={{ backgroundColor: "#fef2f2", color: "#991b1b" }}>
+            Prevádzka je momentálne zatvorená — objednávky nie sú možné.
+            {venue.closed_reason && <span className="block text-xs opacity-75 mt-0.5">{venue.closed_reason}</span>}
+          </div>
+        </div>
+      )}
+
       {/* Category tiles view */}
       {view === "categories" && (
         <div className="max-w-md mx-auto px-4 pt-5 pb-28">
@@ -494,7 +503,7 @@ export default function MenuPageClient({
                   className={`bg-white rounded-2xl shadow-sm border overflow-hidden transition-colors duration-300 ${!item.is_available ? "opacity-60" : ""}`}
                   style={{ borderColor: flashItemId === item.id ? "#22c55e" : "#f3f4f6", boxShadow: flashItemId === item.id ? "0 0 0 2px #22c55e33" : undefined }}
                 >
-                  <button className="w-full text-left" onClick={() => handleItemClick(item)} disabled={!item.is_available}>
+                  <button className="w-full text-left" onClick={() => handleItemClick(item)} disabled={!item.is_available || isClosed}>
                     <div className="flex gap-3 p-3">
                       {item.image_url && (
                         <img src={item.image_url} alt={item.name} className="w-20 h-20 rounded-xl object-cover shrink-0" />
@@ -540,7 +549,8 @@ export default function MenuPageClient({
                         {t.choose}
                       </button>
                     ) : qty === 0 ? (
-                      <button onClick={(e) => { e.stopPropagation(); setPressId(item.id); setTimeout(() => setPressId(null), 320); addSimple(item, e) }}
+                      <button onClick={(e) => { e.stopPropagation(); if (isClosed) return; setPressId(item.id); setTimeout(() => setPressId(null), 320); addSimple(item, e) }}
+                        disabled={isClosed}
                         className={`w-8 h-8 rounded-full flex items-center justify-center text-white transition-colors duration-300 ${pressId === item.id ? "animate-item-press" : ""}`}
                         style={{ backgroundColor: flashItemId === item.id ? "#22c55e" : brandColor }}>
                         {flashItemId === item.id ? <Check size={16} /> : <Plus size={16} />}
