@@ -688,7 +688,7 @@ function DeliveryCartSheet({ cart, brandColor, currency, total, venueId, orderMo
       setLoadingSugg(true)
       try {
         const res = await fetch(
-          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(val)}&format=json&limit=6&countrycodes=sk&addressdetails=1`,
+          `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(val)}&format=json&limit=6&countrycodes=sk&addressdetails=1&autocomplete=1`,
           { headers: { "Accept-Language": "sk" } }
         )
         const data = await res.json()
