@@ -217,6 +217,7 @@ export default function MenuPageClient({
     let raf: number | null = null
     function handleScroll() {
       if (manualScroll.current || view !== "items") return
+      if (!Object.values(categoryRefs.current).some(Boolean)) return
       if (raf) return
       raf = requestAnimationFrame(() => {
         raf = null
