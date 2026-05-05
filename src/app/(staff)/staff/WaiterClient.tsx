@@ -211,6 +211,15 @@ export default function WaiterClient({
   const readyOrderCount = initialOrders.filter(o => o.status === "ready").length
   const pendingOrderCount = initialOrders.filter(o => o.status === "pending").length
 
+  const delivTakeTableIds = new Set(
+    initialOrders
+      .filter(o => o.order_type === "delivery" || o.order_type === "takeaway")
+      .map(o => o.table_id)
+  )
+  const delivTakeOrders = initialOrders.filter(
+    o => o.order_type === "delivery" || o.order_type === "takeaway"
+  )
+
   const prevReadyCountRef = useRef(readyOrderCount)
   useEffect(() => {
     if (readyOrderCount > prevReadyCountRef.current && visibleTabs.some(t => t.key === "orders")) {
@@ -387,7 +396,7 @@ export default function WaiterClient({
                           </span>
                         </div>
                       ))}
-                      {initialTables.map(table => {
+                      {initialTables.filter(t => !delivTakeTableIds.has(t.id)).map(table => {
                         const [tw, th] = tableDim(table.shape).map(d => Math.round(d * FLOOR_SCALE))
                         const s = tableStyle(table.id)
                         const session = initialSessions.find(ss => ss.table_id === table.id)
@@ -416,6 +425,47 @@ export default function WaiterClient({
                           </button>
                         )
                       })}
+                      {/* Delivery/takeaway orders — top-right panel, stacked */}
+                      {delivTakeOrders.length > 0 && (
+                        <div style={{ position: "absolute", top: 8, right: 8, display: "flex", flexDirection: "column", gap: 6, zIndex: 10 }}>
+                          {delivTakeOrders.map(order => {
+                            const isDeliv = order.order_type === "delivery"
+                            return (
+                              <button
+                                key={order.id}
+                                onClick={() => setSelectedTableId(order.table_id)}
+                                style={{
+                                  backgroundColor: isDeliv ? "rgba(124, 45, 18, 0.92)" : "rgba(23, 37, 84, 0.92)",
+                                  border: `1.5px solid ${isDeliv ? "#ea580c" : "#2563eb"}`,
+                                  borderRadius: 8,
+                                  padding: "7px 10px",
+                                  display: "flex", alignItems: "center", gap: 8,
+                                  minWidth: 152, textAlign: "left",
+                                  boxShadow: "0 2px 10px rgba(0,0,0,0.5)",
+                                }}
+                              >
+                                {isDeliv
+                                  ? <Truck size={13} style={{ color: "#fb923c", flexShrink: 0 }} />
+                                  : <Package size={13} style={{ color: "#93c5fd", flexShrink: 0 }} />
+                                }
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                  <p style={{ color: "white", fontSize: 11, fontWeight: 700, lineHeight: 1.3, margin: 0 }}>
+                                    #{order.order_number}
+                                  </p>
+                                  {order.customer_name && (
+                                    <p style={{ color: isDeliv ? "#fb923c" : "#93c5fd", fontSize: 10, opacity: 0.85, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 108, margin: 0 }}>
+                                      {order.customer_name}
+                                    </p>
+                                  )}
+                                </div>
+                                <span style={{ fontSize: 9, color: "#6b7280", flexShrink: 0 }} suppressHydrationWarning>
+                                  {timeAgo(order.created_at)}
+                                </span>
+                              </button>
+                            )
+                          })}
+                        </div>
+                      )}
                     </div>
                   </div>
                   <div className="flex gap-4 mt-3 px-1">
