@@ -374,19 +374,26 @@ export default function MenuPageClient({
             </div>
           </div>
 
-          {/* Cart icon */}
+          {/* Cart icon / total */}
           <button
             ref={cartBtnRef}
             onClick={() => cartCount > 0 && setCartOpen(true)}
-            className="relative w-9 h-9 rounded-xl flex items-center justify-center text-gray-600 hover:bg-gray-100 active:bg-gray-200 transition-colors shrink-0"
+            className={`relative flex items-center justify-center text-gray-600 hover:bg-gray-100 active:bg-gray-200 transition-all shrink-0 ${cartCount > 0 ? "gap-1.5 px-2.5 h-9 rounded-xl" : "w-9 h-9 rounded-xl"}`}
           >
-            <ShoppingCart size={20} />
+            <div className="relative">
+              <ShoppingCart size={20} />
+              {cartCount > 0 && (
+                <span
+                  className={`absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full text-[9px] font-bold flex items-center justify-center text-white transition-transform ${flashItemId ? "scale-125" : "scale-100"}`}
+                  style={{ backgroundColor: brandColor }}
+                >
+                  {cartCount}
+                </span>
+              )}
+            </div>
             {cartCount > 0 && (
-              <span
-                className={`absolute -top-0.5 -right-0.5 w-5 h-5 rounded-full text-[10px] font-bold flex items-center justify-center text-white transition-transform ${flashItemId ? "scale-125" : ""}`}
-                style={{ backgroundColor: brandColor }}
-              >
-                {cartCount}
+              <span className="text-sm font-bold text-gray-900 tabular-nums">
+                {formatCurrency(cartTotal, venue.currency)}
               </span>
             )}
           </button>
