@@ -614,28 +614,22 @@ export default function WaiterClient({
                     return (
                       <div key={order.id} className={`rounded-xl border overflow-hidden ${bgColor} ${borderColor}`}>
                         {/* Header */}
-                        <div className="border-b border-gray-800/70">
-                          {/* Table name — large centered */}
-                          <div className="pt-3 pb-1 text-center">
-                            <span className="text-white font-black text-xl tracking-tight">{tableMap[order.table_id] ?? "Stôl"}</span>
+                        <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-800/70">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            {isReadyWaiterPending && <span className="w-2 h-2 rounded-full bg-orange-400 animate-pulse shrink-0" />}
+                            {isReady && !isReadyWaiterPending && <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse shrink-0" />}
+                            {isDelivered && <span className="w-2 h-2 rounded-full bg-teal-400 shrink-0" />}
+                            {isWaiting && <span className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse shrink-0" />}
+                            <span className="font-bold text-white text-sm">#{order.order_number}</span>
+                            <span className="font-black text-white text-base">{tableMap[order.table_id] ?? "Stôl"}</span>
+                            <OrderStatusBadge status={order.status} />
+                            <span className="text-gray-600 text-xs" suppressHydrationWarning>{timeAgo(order.created_at)}</span>
                           </div>
-                          {/* Meta row */}
-                          <div className="flex items-center justify-between px-4 pb-2.5">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              {isReadyWaiterPending && <span className="w-2 h-2 rounded-full bg-orange-400 animate-pulse shrink-0" />}
-                              {isReady && !isReadyWaiterPending && <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse shrink-0" />}
-                              {isDelivered && <span className="w-2 h-2 rounded-full bg-teal-400 shrink-0" />}
-                              {isWaiting && <span className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse shrink-0" />}
-                              <span className="font-bold text-white text-sm">#{order.order_number}</span>
-                              <OrderStatusBadge status={order.status} />
-                              <span className="text-gray-600 text-xs" suppressHydrationWarning>{timeAgo(order.created_at)}</span>
-                            </div>
-                            {!isDelivered && (
-                              <button onClick={() => setEditOrderId(order.id)} className="p-1.5 rounded-lg hover:bg-gray-700/50 text-gray-600 hover:text-white shrink-0">
-                                <Pencil size={13} />
-                              </button>
-                            )}
-                          </div>
+                          {!isDelivered && (
+                            <button onClick={() => setEditOrderId(order.id)} className="p-1.5 rounded-lg hover:bg-gray-700/50 text-gray-600 hover:text-white shrink-0">
+                              <Pencil size={13} />
+                            </button>
+                          )}
                         </div>
 
                         {/* Two-column items */}
