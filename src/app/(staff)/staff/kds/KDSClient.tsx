@@ -170,7 +170,9 @@ export default function KDSClient({ venueId, staffRole, initialOrders, initialIt
       .on("postgres_changes", { event: "*", schema: "public", table: "order_items" },
         () => { if (mounted) router.refresh() })
       .subscribe()
-    return () => { mounted = false; supabase.removeChannel(channel) }
+    // Polling fallback — refreshes every 8 s if WebSocket drops (common on mobile/unstable WiFi)
+    const poll = setInterval(() => { if (mounted) router.refresh() }, 8000)
+    return () => { mounted = false; supabase.removeChannel(channel); clearInterval(poll) }
   }, [venueId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleAdvance(orderId: string, next: OrderStatus, currentKey: string) {
