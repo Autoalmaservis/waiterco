@@ -42,7 +42,7 @@ type MenuCategoryRow = { id: string; name: string; sort_order: number }
 type MenuItemRow = { id: string; category_id: string; name: string; base_price: number; station: string }
 type CartModifier = { modifierId: string; name: string; price: number }
 type CartItem = { cartId: string; menuItemId: string; name: string; quantity: number; unitPrice: number; notes: string; station: string; modifiers: CartModifier[] }
-type TabKey = "calls" | "tables" | "orders"
+type TabKey = "calls" | "tables" | "orders" | "kds"
 type ModifierGroupRow = { id: string; item_id: string; name: string; min_select: number; max_select: number; sort_order: number }
 type ModifierRow = { id: string; group_id: string; name: string; price: number; is_available: boolean; sort_order: number }
 type OrderItemModifierRow = { id: string; order_item_id: string; modifier_id: string; name: string; price: number }
@@ -74,9 +74,10 @@ const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   ready: "Hotova", delivered: "Dorucena", cancelled: "Zrusena",
 }
 const ALL_TABS: { key: TabKey; icon: React.ElementType; label: string; perm: string }[] = [
-  { key: "calls",  icon: Bell,        label: "Volania",    perm: "waiter_calls" },
-  { key: "tables", icon: Users,       label: "Stoly",      perm: "tables" },
-  { key: "orders", icon: ShoppingBag, label: "Objednavky", perm: "orders" },
+  { key: "calls",  icon: Bell,           label: "Volania",    perm: "waiter_calls" },
+  { key: "tables", icon: Users,          label: "Stoly",      perm: "tables" },
+  { key: "orders", icon: ShoppingBag,    label: "Objednavky", perm: "orders" },
+  { key: "kds",    icon: UtensilsCrossed, label: "Stav KDS",  perm: "" },
 ]
 
 const FLOOR_SCALE = 0.72
@@ -112,7 +113,7 @@ export default function WaiterClient({
 
   const visibleTabs = permissions.length === 0
     ? ALL_TABS
-    : ALL_TABS.filter(t => permissions.includes(t.perm))
+    : ALL_TABS.filter(t => !t.perm || permissions.includes(t.perm))
   const hasKds = permissions.includes("kitchen") || permissions.includes("bar")
 
   const [activeTab, setActiveTab] = useState<TabKey>(() => visibleTabs[0]?.key ?? "calls")
@@ -220,6 +221,28 @@ export default function WaiterClient({
     o => o.order_type === "delivery" || o.order_type === "takeaway"
   )
 
+  // KDS status tab — orders with kitchen/bar items in progress
+  const kdsItemsByOrderId = useMemo(() => {
+    const map: Record<string, { kitchen: OrderItemRow[]; bar: OrderItemRow[] }> = {}
+    for (const item of initialItems) {
+      if (item.status === "cancelled") continue
+      if (item.station !== "kitchen" && item.station !== "bar") continue
+      if (!map[item.order_id]) map[item.order_id] = { kitchen: [], bar: [] }
+      if (item.station === "kitchen") map[item.order_id].kitchen.push(item)
+      else map[item.order_id].bar.push(item)
+    }
+    return map
+  }, [initialItems])
+  const kdsOrders = initialOrders
+    .filter(o => (o.status === "confirmed" || o.status === "preparing" || o.status === "ready") && kdsItemsByOrderId[o.id])
+    .slice().sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+  const kdsReadyCount = kdsOrders.filter(o => {
+    const its = kdsItemsByOrderId[o.id]
+    const all = [...(its?.kitchen ?? []), ...(its?.bar ?? [])]
+    return all.length > 0 && all.every(i => i.status === "ready" || i.status === "delivered")
+  }).length
+  const kdsPrepCount = kdsOrders.length - kdsReadyCount
+
   const prevReadyCountRef = useRef(readyOrderCount)
   useEffect(() => {
     if (readyOrderCount > prevReadyCountRef.current && visibleTabs.some(t => t.key === "orders")) {
@@ -273,6 +296,11 @@ export default function WaiterClient({
               {key === "orders" && (pendingOrderCount > 0 || readyOrderCount > 0) && (
                 <span className={`absolute -top-1 -right-1 w-4 h-4 rounded-full text-white text-[10px] flex items-center justify-center font-bold animate-pulse ${pendingOrderCount > 0 ? "bg-red-500" : "bg-green-500"}`}>
                   {pendingOrderCount > 0 ? pendingOrderCount : readyOrderCount}
+                </span>
+              )}
+              {key === "kds" && kdsOrders.length > 0 && (
+                <span className={`absolute -top-1 -right-1 w-4 h-4 rounded-full text-white text-[10px] flex items-center justify-center font-bold ${kdsReadyCount > 0 ? "bg-green-500 animate-pulse" : "bg-yellow-500"}`}>
+                  {kdsOrders.length}
                 </span>
               )}
             </button>
@@ -841,6 +869,135 @@ export default function WaiterClient({
                               Zaplatiť
                             </button>
                           </div>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* STAV KDS */}
+        {activeTab === "kds" && (
+          <div className="h-full overflow-y-auto">
+            <div className="max-w-2xl mx-auto px-4 pb-4">
+              {/* Summary pills */}
+              {kdsOrders.length > 0 && (
+                <div className="flex gap-2 pt-4 pb-3 flex-wrap">
+                  {kdsPrepCount > 0 && (
+                    <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-yellow-900/50 border border-yellow-700/50 text-yellow-300 text-xs font-medium">
+                      <span className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse" />
+                      {kdsPrepCount} v príprave
+                    </span>
+                  )}
+                  {kdsReadyCount > 0 && (
+                    <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-green-900/50 border border-green-700/50 text-green-300 text-xs font-medium">
+                      <span className="w-2 h-2 rounded-full bg-green-400" />
+                      {kdsReadyCount} hotové
+                    </span>
+                  )}
+                </div>
+              )}
+
+              {kdsOrders.length === 0 ? (
+                <EmptyState icon={UtensilsCrossed} text="Kuchyňa a bar sú voľné" />
+              ) : (
+                <div className="space-y-3 pt-2">
+                  {kdsOrders.map(order => {
+                    const its = kdsItemsByOrderId[order.id]
+                    const kitchenItems = its?.kitchen ?? []
+                    const barItems = its?.bar ?? []
+                    const allDone = [...kitchenItems, ...barItems].every(i => i.status === "ready" || i.status === "delivered")
+                    const isDelivOrder = order.order_type === "delivery"
+                    const isTakeOrder = order.order_type === "takeaway"
+                    const borderCol = allDone ? "#166534" : "#374151"
+                    return (
+                      <div key={order.id} className="bg-gray-900 rounded-xl overflow-hidden border" style={{ borderColor: borderCol }}>
+                        {/* Order header */}
+                        <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-800">
+                          <div className="flex items-center gap-2">
+                            {allDone
+                              ? <span className="w-2 h-2 rounded-full bg-green-400" />
+                              : <span className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse" />
+                            }
+                            <span className="font-bold text-white text-sm">#{order.order_number}</span>
+                            <span className="text-gray-500 text-xs">Kolo {order.round_number}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {isDelivOrder
+                              ? <span className="flex items-center gap-1 text-orange-400 text-xs font-medium"><Truck size={10} />Donáška</span>
+                              : isTakeOrder
+                                ? <span className="flex items-center gap-1 text-blue-400 text-xs font-medium"><Package size={10} />Takeaway</span>
+                                : <span className="text-gray-400 text-xs">{tableMap[order.table_id] ?? "–"}</span>
+                            }
+                            <span className="text-gray-600 text-xs" suppressHydrationWarning>{timeAgo(order.created_at)}</span>
+                          </div>
+                        </div>
+
+                        {/* Kitchen / Bar columns */}
+                        <div className={`grid divide-x divide-gray-800 ${kitchenItems.length > 0 && barItems.length > 0 ? "grid-cols-2" : "grid-cols-1"}`}>
+                          {kitchenItems.length > 0 && (
+                            <div className="p-3">
+                              <div className="flex items-center gap-1.5 mb-2">
+                                <ChefHat size={11} className="text-orange-400" />
+                                <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">Kuchyňa</span>
+                                <span className="text-[10px] text-gray-700">
+                                  {kitchenItems.filter(i => i.status === "ready" || i.status === "delivered").length}/{kitchenItems.length}
+                                </span>
+                              </div>
+                              {kitchenItems.map(item => {
+                                const done = item.status === "ready" || item.status === "delivered"
+                                return (
+                                  <div key={item.id} className="flex items-center gap-2 py-1">
+                                    {item.status === "delivered"
+                                      ? <CheckCircle2 size={13} className="text-teal-500 shrink-0" />
+                                      : item.status === "ready"
+                                        ? <CheckCircle2 size={13} className="text-green-400 shrink-0" />
+                                        : item.status === "preparing"
+                                          ? <span className="w-3 h-3 rounded-full border-2 border-yellow-500 animate-pulse shrink-0" />
+                                          : <span className="w-3 h-3 rounded-full border-2 border-gray-600 shrink-0" />
+                                    }
+                                    <span className={`text-xs truncate ${done ? "line-through text-gray-600" : "text-white"}`}>
+                                      {item.quantity > 1 && <span className="font-bold">{item.quantity}× </span>}
+                                      {item.name}
+                                    </span>
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          )}
+                          {barItems.length > 0 && (
+                            <div className="p-3">
+                              <div className="flex items-center gap-1.5 mb-2">
+                                <GlassWater size={11} className="text-blue-400" />
+                                <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">Bar</span>
+                                <span className="text-[10px] text-gray-700">
+                                  {barItems.filter(i => i.status === "ready" || i.status === "delivered").length}/{barItems.length}
+                                </span>
+                              </div>
+                              {barItems.map(item => {
+                                const done = item.status === "ready" || item.status === "delivered"
+                                return (
+                                  <div key={item.id} className="flex items-center gap-2 py-1">
+                                    {item.status === "delivered"
+                                      ? <CheckCircle2 size={13} className="text-teal-500 shrink-0" />
+                                      : item.status === "ready"
+                                        ? <CheckCircle2 size={13} className="text-green-400 shrink-0" />
+                                        : item.status === "preparing"
+                                          ? <span className="w-3 h-3 rounded-full border-2 border-yellow-500 animate-pulse shrink-0" />
+                                          : <span className="w-3 h-3 rounded-full border-2 border-gray-600 shrink-0" />
+                                    }
+                                    <span className={`text-xs truncate ${done ? "line-through text-gray-600" : "text-white"}`}>
+                                      {item.quantity > 1 && <span className="font-bold">{item.quantity}× </span>}
+                                      {item.name}
+                                    </span>
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          )}
                         </div>
                       </div>
                     )
