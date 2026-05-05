@@ -1498,15 +1498,16 @@ function OrderCreateSheet({
     <div className="fixed inset-0 z-50 flex items-end p-3 bg-black/60" onClick={onClose}>
       <div className="flex flex-col w-full bg-gray-950 rounded-2xl overflow-hidden" style={{ maxHeight: "calc(100dvh - 5rem)" }} onClick={e => e.stopPropagation()}>
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3.5 border-b border-gray-800 shrink-0"
+        <div className="relative px-4 py-4 border-b border-gray-800 shrink-0 text-center"
           style={{ backgroundColor: "var(--brand-navy)" }}>
-          <div>
-            <h2 className="text-white font-bold text-base">
-              {isEdit ? `Upravit objednavku #${editOrderNumber}` : "Nova objednavka"}
-            </h2>
-            <p className="text-blue-300 text-xs">{table.name}{session ? ` · ${session.customer_count ? `${session.customer_count} hosti` : "Otvoreny stol"}` : " · Novy stol"}</p>
-          </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-800">
+          <p className="text-blue-300 text-xs font-medium mb-0.5">
+            {isEdit ? `Upraviť objednávku #${editOrderNumber}` : "Nová objednávka"}
+          </p>
+          <h2 className="text-white font-black text-2xl tracking-tight">{table.name}</h2>
+          {session?.customer_count ? (
+            <p className="text-blue-300 text-xs mt-0.5">{session.customer_count} hostí</p>
+          ) : null}
+          <button onClick={onClose} className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-lg hover:bg-gray-800">
             <X size={18} className="text-gray-400" />
           </button>
         </div>
