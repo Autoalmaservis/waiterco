@@ -25,7 +25,7 @@ export default async function VenuePage({ params }: Props) {
       .order("sort_order"),
     (supabase as any)
       .from("menu_items")
-      .select("id, category_id, name, description, image_url, base_price, is_available, allergens, tags, station")
+      .select("id, category_id, name, description, image_url, base_price, is_available, available_for_delivery, allergens, tags, station")
       .eq("venue_id", venue.id)
       .eq("is_active", true)
       .order("sort_order"),

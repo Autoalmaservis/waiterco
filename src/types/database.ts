@@ -162,6 +162,7 @@ export interface Database {
           tags: string[]
           is_active: boolean
           is_available: boolean
+          available_for_delivery: boolean
           unavailable_reason: string | null
           sort_order: number
           created_at: string

@@ -14,7 +14,7 @@ import { placeDeliveryOrder, getVenueReviews, submitVenueReview, type DeliveryIn
 type MenuItem = {
   id: string; category_id: string; name: string; description: string | null
   image_url: string | null; base_price: number; is_available: boolean
-  allergens: string[]; tags: string[]; station: string
+  available_for_delivery: boolean; allergens: string[]; tags: string[]; station: string
 }
 type Category = { id: string; name: string; description: string | null; sort_order: number }
 type ModifierGroupRow = { id: string; item_id: string; name: string; min_select: number; max_select: number; sort_order: number }
@@ -57,6 +57,7 @@ export default function VenuePageClient({ venue, categories, items, modifierGrou
   const [pickerItem, setPickerItem] = useState<MenuItem | null>(null)
   const [detailItem, setDetailItem] = useState<MenuItem | null>(null)
   const [orderMode, setOrderMode] = useState<"delivery" | "takeaway" | null>(null)
+  const visibleItems = orderMode ? items.filter(i => i.available_for_delivery !== false) : items
   const [pressId, setPressId] = useState<string | null>(null)
   const [reviewSheetOpen, setReviewSheetOpen] = useState(false)
   const [ratingModalOpen, setRatingModalOpen] = useState(false)
@@ -227,7 +228,7 @@ export default function VenuePageClient({ venue, categories, items, modifierGrou
         <div className="max-w-lg mx-auto px-4 pt-5 pb-28">
           <div className="grid grid-cols-2 gap-3">
             {categories.map(cat => {
-              const catItems = items.filter(i => i.category_id === cat.id)
+              const catItems = visibleItems.filter(i => i.category_id === cat.id)
               if (catItems.length === 0) return null
               const firstImage = catItems.find(i => i.image_url)?.image_url ?? null
               return (
@@ -261,7 +262,7 @@ export default function VenuePageClient({ venue, categories, items, modifierGrou
             <p className="text-gray-500 text-sm px-4 pt-4">{categories.find(c => c.id === activeCategoryId)?.description}</p>
           )}
           <div className="space-y-2 px-4 pt-4">
-            {items.filter(i => i.category_id === activeCategoryId).map(item => {
+            {visibleItems.filter(i => i.category_id === activeCategoryId).map(item => {
               const qty = cartQtyFor(item.id)
               const withMods = hasModifiers(item.id)
               return (

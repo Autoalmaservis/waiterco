@@ -249,6 +249,17 @@ function ItemFormFields({ item, categoryId, venueId }: { item?: MenuItem; catego
           placeholder="Vypredané, dostupné od zajtra"
         />
       </div>
+      <div>
+        <label className="block text-xs font-medium text-gray-700 mb-1">Donáška / Takeaway</label>
+        <select
+          name="available_for_delivery"
+          defaultValue={(item as any)?.available_for_delivery === false ? "false" : "true"}
+          className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+        >
+          <option value="true">Áno — dostupné na donášku</option>
+          <option value="false">Nie — iba v prevádzke</option>
+        </select>
+      </div>
     </div>
   )
 }
@@ -768,6 +779,7 @@ export default function CategoryItemsClient({ items: initial, categoryId, venueI
                 <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Stanica</th>
                 <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Stav</th>
                 <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Dostupnosť</th>
+                <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Donáška</th>
                 <th className="text-left px-6 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">Modifikátory</th>
                 <th className="px-6 py-3" />
               </tr>
@@ -825,6 +837,13 @@ export default function CategoryItemsClient({ items: initial, categoryId, venueI
                       <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${item.is_available ? "bg-teal-100 text-teal-700" : "bg-red-100 text-red-600"}`}>
                         {item.is_available ? "Dostupná" : "Nedostupná"}
                       </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      {(item as any).available_for_delivery !== false ? (
+                        <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">Áno</span>
+                      ) : (
+                        <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">Nie</span>
+                      )}
                     </td>
                     <td className="px-6 py-4">
                       <button
