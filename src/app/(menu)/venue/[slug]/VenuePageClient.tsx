@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useEffect, useTransition } from "react"
+import { useState, useTransition } from "react"
 import Link from "next/link"
 import {
   ArrowLeft, MapPin, Phone, Star, UtensilsCrossed, Wine, Coffee,
@@ -49,50 +49,13 @@ export default function VenuePageClient({ venue, categories, items, modifierGrou
   const Icon = typeIcon[venue.type] ?? Coffee
 
   const [activeTab, setActiveTab] = useState<"menu" | "info">("menu")
+  const [menuView, setMenuView] = useState<"categories" | "items">("categories")
   const [activeCategoryId, setActiveCategoryId] = useState(categories[0]?.id ?? "")
   const [cart, setCart] = useState<CartItem[]>([])
   const [cartOpen, setCartOpen] = useState(false)
   const [pickerItem, setPickerItem] = useState<MenuItem | null>(null)
   const [detailItem, setDetailItem] = useState<MenuItem | null>(null)
   const [orderMode, setOrderMode] = useState<"delivery" | "takeaway" | null>(null)
-
-  const categoryRefs = useRef<Record<string, HTMLElement | null>>({})
-  const navRef = useRef<HTMLDivElement | null>(null)
-  const manualScroll = useRef(false)
-  const manualScrollTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  useEffect(() => {
-    let raf: number | null = null
-    function handleScroll() {
-      if (manualScroll.current || activeTab !== "menu") return
-      if (raf) return
-      raf = requestAnimationFrame(() => {
-        raf = null
-        let activeId = categories[0]?.id ?? ""
-        for (const cat of categories) {
-          const el = categoryRefs.current[cat.id]
-          if (!el) continue
-          if (el.getBoundingClientRect().top <= 130) activeId = cat.id
-        }
-        setActiveCategoryId(prev => prev === activeId ? prev : activeId)
-      })
-    }
-    window.addEventListener("scroll", handleScroll, { passive: true })
-    return () => { window.removeEventListener("scroll", handleScroll); if (raf) cancelAnimationFrame(raf) }
-  }, [categories, activeTab])
-
-  useEffect(() => {
-    const el = navRef.current?.querySelector(`[data-cat="${activeCategoryId}"]`) as HTMLElement | null
-    el?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" })
-  }, [activeCategoryId])
-
-  function scrollToCategory(catId: string) {
-    manualScroll.current = true
-    setActiveCategoryId(catId)
-    categoryRefs.current[catId]?.scrollIntoView({ behavior: "smooth", block: "start" })
-    if (manualScrollTimer.current) clearTimeout(manualScrollTimer.current)
-    manualScrollTimer.current = setTimeout(() => { manualScroll.current = false }, 1000)
-  }
 
   function hasModifiers(itemId: string) { return modifierGroups.some(g => g.item_id === itemId) }
   function itemGroupsFor(itemId: string) {
@@ -208,136 +171,115 @@ export default function VenuePageClient({ venue, categories, items, modifierGrou
 
       {/* Tabs: Menu / Info */}
       <div className="sticky top-0 z-30 bg-white border-b border-gray-100 shadow-sm">
-        <div className="max-w-lg mx-auto">
-          <div className="flex">
-            {["menu", "info"].map(tab => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab as "menu" | "info")}
-                className="flex-1 py-3 text-sm font-semibold transition-colors border-b-2"
-                style={activeTab === tab ? { color: brand, borderColor: brand } : { color: "#6b7280", borderColor: "transparent" }}
-              >
-                {tab === "menu" ? "Menu" : "Informácie"}
-              </button>
-            ))}
-          </div>
-          {/* Category tabs in menu tab */}
-          {activeTab === "menu" && categories.length > 0 && (
-            <div ref={navRef} className="flex overflow-x-auto gap-1 px-4 pb-2 pt-1" style={{ scrollbarWidth: "none" }}>
-              {categories.map(cat => (
-                <button
-                  key={cat.id}
-                  data-cat={cat.id}
-                  onClick={() => scrollToCategory(cat.id)}
-                  className="shrink-0 px-3 py-1 rounded-full text-xs font-medium transition-colors border"
-                  style={activeCategoryId === cat.id
-                    ? { backgroundColor: brand, color: "white", borderColor: brand }
-                    : { backgroundColor: "white", color: "#6b7280", borderColor: "#e5e7eb" }
-                  }
-                >
-                  {cat.name}
-                </button>
-              ))}
-            </div>
-          )}
+        <div className="max-w-lg mx-auto flex">
+          {(["menu", "info"] as const).map(tab => (
+            <button key={tab}
+              onClick={() => { setActiveTab(tab); if (tab === "menu") setMenuView("categories") }}
+              className="flex-1 py-3 text-sm font-semibold transition-colors border-b-2 flex items-center justify-center gap-1.5"
+              style={activeTab === tab ? { color: brand, borderColor: brand } : { color: "#6b7280", borderColor: "transparent" }}
+            >
+              {tab === "menu" && menuView === "items" && activeTab === "menu" && (
+                <ArrowLeft size={14} onClick={e => { e.stopPropagation(); setMenuView("categories") }} />
+              )}
+              {tab === "menu" ? (menuView === "items" && activeTab === "menu" ? categories.find(c => c.id === activeCategoryId)?.name ?? "Menu" : "Menu") : "Informácie"}
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* Menu content */}
-      {activeTab === "menu" && (
+      {/* Category tiles */}
+      {activeTab === "menu" && menuView === "categories" && (
+        <div className="max-w-lg mx-auto px-4 pt-5 pb-32">
+          <div className="grid grid-cols-2 gap-3">
+            {categories.map(cat => {
+              const catItems = items.filter(i => i.category_id === cat.id)
+              if (catItems.length === 0) return null
+              const firstImage = catItems.find(i => i.image_url)?.image_url ?? null
+              return (
+                <button key={cat.id}
+                  onClick={() => { setActiveCategoryId(cat.id); setMenuView("items") }}
+                  className="relative rounded-2xl overflow-hidden aspect-square flex flex-col justify-end text-left active:scale-[0.97] transition-transform shadow-sm"
+                >
+                  {firstImage ? (
+                    <img src={firstImage} alt={cat.name} className="absolute inset-0 w-full h-full object-cover" />
+                  ) : (
+                    <div className="absolute inset-0" style={{ backgroundColor: `${brand}20` }} />
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                  <div className="relative p-3">
+                    <p className="text-white font-bold text-base leading-tight">{cat.name}</p>
+                    <p className="text-white/70 text-xs mt-0.5">{catItems.length} {catItems.length === 1 ? "položka" : catItems.length < 5 ? "položky" : "položiek"}</p>
+                  </div>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Items in selected category */}
+      {activeTab === "menu" && menuView === "items" && (
         <div className="max-w-lg mx-auto pb-32">
-          {categories.map(cat => {
-            const catItems = items.filter(i => i.category_id === cat.id)
-            if (catItems.length === 0) return null
-            return (
-              <section key={cat.id} ref={(el) => { categoryRefs.current[cat.id] = el }}>
-                <div className="px-4 pt-5 pb-2">
-                  <h2 className="font-bold text-gray-900 text-base">{cat.name}</h2>
-                  {cat.description && <p className="text-gray-500 text-xs mt-0.5">{cat.description}</p>}
-                </div>
-                <div className="space-y-2 px-4">
-                  {catItems.map(item => {
-                    const qty = cartQtyFor(item.id)
-                    const withMods = hasModifiers(item.id)
-                    const canOrder = !!orderMode
-                    return (
-                      <div key={item.id}
-                        className={`bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden ${!item.is_available ? "opacity-60" : ""}`}>
-                        <button
-                          className="w-full text-left"
-                          onClick={() => {
-                            if (!item.is_available) return
-                            if (withMods) setPickerItem(item)
-                            else setDetailItem(item)
-                          }}
-                          disabled={!item.is_available}
-                        >
-                          <div className="flex gap-3 p-3">
-                            {item.image_url && (
-                              <img src={item.image_url} alt={item.name} className="w-20 h-20 rounded-xl object-cover shrink-0" />
-                            )}
-                            <div className="flex-1 min-w-0">
-                              <p className="font-semibold text-gray-900 text-sm leading-snug">{item.name}</p>
-                              {item.description && (
-                                <p className="text-gray-500 text-xs mt-0.5 line-clamp-2">{item.description}</p>
-                              )}
-                              {item.allergens?.length > 0 && (
-                                <div className="flex items-center gap-1 mt-1">
-                                  <AlertTriangle size={10} className="text-amber-500 shrink-0" />
-                                  <span className="text-amber-600 text-[10px]">{item.allergens.join(", ")}</span>
-                                </div>
-                              )}
-                              {withMods && (
-                                <p className="text-[10px] text-gray-400 mt-1 flex items-center gap-0.5">
-                                  <ChevronDown size={10} />Možnosti výberu
-                                </p>
-                              )}
-                            </div>
+          {categories.find(c => c.id === activeCategoryId)?.description && (
+            <p className="text-gray-500 text-sm px-4 pt-4">{categories.find(c => c.id === activeCategoryId)?.description}</p>
+          )}
+          <div className="space-y-2 px-4 pt-4">
+            {items.filter(i => i.category_id === activeCategoryId).map(item => {
+              const qty = cartQtyFor(item.id)
+              const withMods = hasModifiers(item.id)
+              const canOrder = !!orderMode
+              return (
+                <div key={item.id}
+                  className={`bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden ${!item.is_available ? "opacity-60" : ""}`}>
+                  <button className="w-full text-left"
+                    onClick={() => { if (!item.is_available) return; if (withMods) setPickerItem(item); else setDetailItem(item) }}
+                    disabled={!item.is_available}
+                  >
+                    <div className="flex gap-3 p-3">
+                      {item.image_url && (
+                        <img src={item.image_url} alt={item.name} className="w-20 h-20 rounded-xl object-cover shrink-0" />
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-gray-900 text-sm leading-snug">{item.name}</p>
+                        {item.description && <p className="text-gray-500 text-xs mt-0.5 line-clamp-2">{item.description}</p>}
+                        {item.allergens?.length > 0 && (
+                          <div className="flex items-center gap-1 mt-1">
+                            <AlertTriangle size={10} className="text-amber-500 shrink-0" />
+                            <span className="text-amber-600 text-[10px]">{item.allergens.join(", ")}</span>
                           </div>
-                        </button>
-                        <div className="flex items-center justify-between px-3 pb-3">
-                          <span className="font-bold text-sm" style={{ color: brand }}>
-                            {formatCurrency(item.base_price, venue.currency)}
-                          </span>
-                          {!item.is_available ? (
-                            <span className="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded-lg">Nedostupné</span>
-                          ) : !canOrder ? (
-                            <span className="text-xs text-gray-400">Vyberte spôsob objednávky</span>
-                          ) : withMods ? (
-                            <button onClick={() => setPickerItem(item)}
-                              className="px-3 py-1.5 rounded-xl text-white text-xs font-semibold"
-                              style={{ backgroundColor: brand }}>
-                              Vybrať
-                            </button>
-                          ) : qty === 0 ? (
-                            <button onClick={(e) => { e.stopPropagation(); addSimple(item) }}
-                              className="w-8 h-8 rounded-full flex items-center justify-center text-white"
-                              style={{ backgroundColor: brand }}>
-                              <Plus size={16} />
-                            </button>
-                          ) : (
-                            <div className="flex items-center gap-2">
-                              <button onClick={(e) => { e.stopPropagation(); changeQty(item.id, -1) }}
-                                className="w-7 h-7 rounded-full border flex items-center justify-center"
-                                style={{ borderColor: brand, color: brand }}>
-                                <Minus size={14} />
-                              </button>
-                              <span className="text-sm font-bold w-4 text-center text-gray-900">{qty}</span>
-                              <button onClick={(e) => { e.stopPropagation(); addSimple(item) }}
-                                className="w-7 h-7 rounded-full flex items-center justify-center text-white"
-                                style={{ backgroundColor: brand }}>
-                                <Plus size={14} />
-                              </button>
-                            </div>
-                          )}
-                        </div>
+                        )}
+                        {withMods && (
+                          <p className="text-[10px] text-gray-400 mt-1 flex items-center gap-0.5">
+                            <ChevronDown size={10} />Možnosti výberu
+                          </p>
+                        )}
                       </div>
-                    )
-                  })}
+                    </div>
+                  </button>
+                  <div className="flex items-center justify-between px-3 pb-3">
+                    <span className="font-bold text-sm" style={{ color: brand }}>{formatCurrency(item.base_price, venue.currency)}</span>
+                    {!item.is_available ? (
+                      <span className="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded-lg">Nedostupné</span>
+                    ) : !canOrder ? (
+                      <span className="text-xs text-gray-400 text-right leading-snug">Vyberte<br/>spôsob</span>
+                    ) : withMods ? (
+                      <button onClick={() => setPickerItem(item)} className="px-3 py-1.5 rounded-xl text-white text-xs font-semibold" style={{ backgroundColor: brand }}>Vybrať</button>
+                    ) : qty === 0 ? (
+                      <button onClick={e => { e.stopPropagation(); addSimple(item) }} className="w-8 h-8 rounded-full flex items-center justify-center text-white" style={{ backgroundColor: brand }}>
+                        <Plus size={16} />
+                      </button>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <button onClick={e => { e.stopPropagation(); changeQty(item.id, -1) }} className="w-7 h-7 rounded-full border flex items-center justify-center" style={{ borderColor: brand, color: brand }}><Minus size={14} /></button>
+                        <span className="text-sm font-bold w-4 text-center text-gray-900">{qty}</span>
+                        <button onClick={e => { e.stopPropagation(); addSimple(item) }} className="w-7 h-7 rounded-full flex items-center justify-center text-white" style={{ backgroundColor: brand }}><Plus size={14} /></button>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </section>
-            )
-          })}
+              )
+            })}
+          </div>
         </div>
       )}
 
