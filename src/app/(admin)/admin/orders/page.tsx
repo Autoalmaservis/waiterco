@@ -37,11 +37,24 @@ export default async function OrdersPage() {
       .in("venue_id", venueIds),
   ])
 
+  const orders = ordersResult.data ?? []
+  const orderIds = orders.map((o) => o.id)
+
+  let orderItems: { id: string; order_id: string; name: string; quantity: number; unit_price: number; total_price: number; status: string }[] = []
+  if (orderIds.length > 0) {
+    const { data } = await (supabase as any)
+      .from("order_items")
+      .select("id, order_id, name, quantity, unit_price, total_price, status")
+      .in("order_id", orderIds)
+      .neq("status", "cancelled")
+    orderItems = data ?? []
+  }
+
   const tableMap = Object.fromEntries((tablesResult.data ?? []).map((t) => [t.id, t.name]))
 
   return (
     <div className="p-8">
-      <OrdersClient orders={ordersResult.data ?? []} venues={ctx.venues} tableMap={tableMap} />
+      <OrdersClient orders={orders} venues={ctx.venues} tableMap={tableMap} orderItems={orderItems} />
     </div>
   )
 }
