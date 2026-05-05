@@ -369,7 +369,7 @@ export default function MenuPageClient({
               ) : (
                 <>
                   <p className="font-bold text-white text-sm leading-tight truncate">{venue.name}</p>
-                  <p className="text-white/70 text-xs">{t.table}: {table.name}</p>
+                  <p className="text-white/80 text-xs font-medium">{t.table}: {table.name}</p>
                 </>
               )}
             </div>
@@ -569,27 +569,70 @@ export default function MenuPageClient({
         />
       )}
 
-      {/* Fixed bottom cart bar — always visible on every view */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 px-4 pt-3 pb-6" style={{ backgroundColor: brandColor }}>
-        <div className="max-w-md mx-auto">
+      {/* Fixed bottom bar — 3 sections: order progress | cart | call waiter */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 px-3 pt-3 pb-6" style={{ backgroundColor: brandColor }}>
+        <div className="max-w-md mx-auto flex items-stretch gap-2">
+
+          {/* Left: order progress */}
+          {(() => {
+            const allItems = trackingOrders.flatMap(o => o.items).filter(i => i.status !== "delivered" && i.status !== "cancelled")
+            const hasReady = allItems.some(i => i.status === "ready")
+            const hasPreparing = allItems.some(i => i.status === "preparing" || i.status === "confirmed")
+            return (
+              <button
+                onClick={() => sessionId && setView("orders")}
+                className="w-14 rounded-2xl flex flex-col items-center justify-center gap-1 bg-black/20 hover:bg-black/30 active:bg-black/35 transition-colors shrink-0"
+              >
+                {!sessionId || trackingOrders.length === 0
+                  ? <Receipt size={20} className="text-white/50" />
+                  : hasReady
+                    ? <CheckCircle2 size={20} className="text-green-300" />
+                    : hasPreparing
+                      ? <Loader2 size={20} className="text-white animate-spin" />
+                      : <Clock size={20} className="text-white/80" />
+                }
+                <span className="text-[9px] text-white/70 font-medium leading-none">Stav</span>
+              </button>
+            )
+          })()}
+
+          {/* Center: cart */}
           <button
             onClick={() => cartCount > 0 && setCartOpen(true)}
             disabled={cartCount === 0}
-            className="w-full flex items-center justify-between px-5 py-3.5 rounded-2xl active:scale-[0.98] transition-all disabled:cursor-default"
-            style={{ backgroundColor: cartCount > 0 ? "rgba(255,255,255,0.18)" : "rgba(0,0,0,0.12)" }}
+            className="flex-1 flex items-center justify-between px-4 py-3.5 rounded-2xl bg-white active:scale-[0.98] transition-all disabled:opacity-70"
           >
             <div className="flex items-center gap-2">
-              <div className={`w-6 h-6 rounded-full bg-white/25 flex items-center justify-center text-xs font-bold text-white transition-transform duration-200 ${flashItemId ? "scale-125" : ""}`}>
+              <div
+                className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black text-white transition-transform duration-200 ${flashItemId ? "scale-125" : ""}`}
+                style={{ backgroundColor: cartCount > 0 ? brandColor : "#9ca3af" }}
+              >
                 {cartCount}
               </div>
-              <span className={`font-semibold text-sm ${cartCount > 0 ? "text-white" : "text-white/50"}`}>
+              <span className={`font-semibold text-sm ${cartCount > 0 ? "text-gray-900" : "text-gray-400"}`}>
                 {cartCount === 0 ? "Košík je prázdny" : t.viewCart}
               </span>
             </div>
-            <span className={`font-bold text-sm ${cartCount > 0 ? "text-white" : "text-white/50"}`}>
+            <span className="font-black text-sm" style={{ color: cartCount > 0 ? brandColor : "#9ca3af" }}>
               {formatCurrency(cartTotal, venue.currency)}
             </span>
           </button>
+
+          {/* Right: call waiter */}
+          <button
+            onClick={handleCallWaiter}
+            disabled={waiterCallState === "pending"}
+            className="w-14 rounded-2xl flex flex-col items-center justify-center gap-1 bg-black/20 hover:bg-black/30 active:bg-black/35 transition-colors disabled:opacity-60 shrink-0"
+          >
+            <Bell
+              size={20}
+              className={`${waiterCallState === "done" ? "text-green-300" : "text-white"} ${waiterCallState === "pending" ? "animate-pulse" : ""}`}
+            />
+            <span className="text-[9px] text-white/70 font-medium leading-none text-center">
+              {waiterCallState === "done" ? "Prichádza" : t.waiter}
+            </span>
+          </button>
+
         </div>
       </div>
 
@@ -654,20 +697,6 @@ export default function MenuPageClient({
                 </div>
                 <span className="text-sm font-bold px-3 py-1 rounded-lg text-white" style={{ backgroundColor: brandColor }}>
                   {lang.toUpperCase()}
-                </span>
-              </button>
-
-              {/* Call waiter */}
-              <button
-                onClick={() => { handleCallWaiter(); setUserMenuOpen(false) }}
-                disabled={waiterCallState === "pending"}
-                className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl bg-gray-50 hover:bg-gray-100 active:bg-gray-200 transition-colors disabled:opacity-60"
-              >
-                <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: `${brandColor}20` }}>
-                  <Bell size={18} style={{ color: brandColor }} className={waiterCallState === "pending" ? "animate-pulse" : ""} />
-                </div>
-                <span className="font-medium text-gray-900 text-sm">
-                  {waiterCallState === "done" ? t.waiterComing : waiterCallState === "error" ? t.error : t.waiter}
                 </span>
               </button>
 

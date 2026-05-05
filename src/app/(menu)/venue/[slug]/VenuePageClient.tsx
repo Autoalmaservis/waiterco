@@ -339,30 +339,57 @@ export default function VenuePageClient({ venue, categories, items, modifierGrou
         </div>
       )}
 
-      {/* Fixed bottom bar — always visible */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 px-4 pt-3 pb-6" style={{ backgroundColor: brand }}>
-        <div className="max-w-lg mx-auto">
+      {/* Fixed bottom bar — 3 sections: order mode | cart | placeholder */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 px-3 pt-3 pb-6" style={{ backgroundColor: brand }}>
+        <div className="max-w-lg mx-auto flex items-stretch gap-2">
+
+          {/* Left: order mode indicator */}
+          <button
+            onClick={() => setCartOpen(true)}
+            className="w-14 rounded-2xl flex flex-col items-center justify-center gap-1 bg-black/20 hover:bg-black/30 active:bg-black/35 transition-colors shrink-0"
+          >
+            {orderMode === "delivery"
+              ? <Truck size={20} className="text-white" />
+              : orderMode === "takeaway"
+                ? <Package size={20} className="text-white" />
+                : <UtensilsCrossed size={20} className="text-white/50" />
+            }
+            <span className="text-[9px] text-white/70 font-medium leading-none">
+              {orderMode === "delivery" ? "Donáška" : orderMode === "takeaway" ? "Takeaway" : "Typ"}
+            </span>
+          </button>
+
+          {/* Center: cart */}
           <button
             onClick={() => cartCount > 0 && setCartOpen(true)}
             disabled={cartCount === 0}
-            className="w-full flex items-center justify-between px-5 py-3.5 rounded-2xl active:scale-[0.98] transition-all disabled:cursor-default"
-            style={{ backgroundColor: cartCount > 0 ? "rgba(255,255,255,0.18)" : "rgba(0,0,0,0.12)" }}
+            className="flex-1 flex items-center justify-between px-4 py-3.5 rounded-2xl bg-white active:scale-[0.98] transition-all disabled:opacity-70"
           >
             <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-full bg-white/25 flex items-center justify-center text-xs font-bold text-white">
+              <div
+                className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-black text-white"
+                style={{ backgroundColor: cartCount > 0 ? brand : "#9ca3af" }}
+              >
                 {cartCount}
               </div>
-              <span className={`font-semibold text-sm ${cartCount > 0 ? "text-white" : "text-white/50"}`}>
+              <span className={`font-semibold text-sm ${cartCount > 0 ? "text-gray-900" : "text-gray-400"}`}>
                 {cartCount === 0 ? "Košík je prázdny" : "Zobraziť košík"}
               </span>
             </div>
-            <div className="flex items-center gap-1">
-              <span className={`font-bold text-sm ${cartCount > 0 ? "text-white" : "text-white/50"}`}>
-                {formatCurrency(cartTotal, venue.currency)}
-              </span>
-              {cartCount > 0 && <ChevronRight size={16} className="text-white" />}
-            </div>
+            <span className="font-black text-sm" style={{ color: cartCount > 0 ? brand : "#9ca3af" }}>
+              {formatCurrency(cartTotal, venue.currency)}
+            </span>
           </button>
+
+          {/* Right: QR / scan hint */}
+          <button
+            onClick={() => window.location.href = "/restaurants"}
+            className="w-14 rounded-2xl flex flex-col items-center justify-center gap-1 bg-black/20 hover:bg-black/30 active:bg-black/35 transition-colors shrink-0"
+          >
+            <QrCode size={20} className="text-white/60" />
+            <span className="text-[9px] text-white/60 font-medium leading-none">Na stole</span>
+          </button>
+
         </div>
       </div>
 
