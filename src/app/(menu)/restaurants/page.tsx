@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server"
 import RestaurantsClient from "./RestaurantsClient"
 
 export const metadata = {
-  title: "Reštaurácie – eWaiter",
+  title: "Reštaurácie – Waiterco",
   description: "Nájdite reštaurácie a objednajte si online",
 }
 

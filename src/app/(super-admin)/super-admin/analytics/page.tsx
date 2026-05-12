@@ -73,7 +73,7 @@ export default async function AnalyticsPage() {
     <div className="p-8">
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900">Analytika</h1>
-        <p className="text-gray-500 text-sm mt-1">Prehľad platformy eWaiter</p>
+        <p className="text-gray-500 text-sm mt-1">Prehľad platformy Waiterco</p>
       </div>
 
       {/* KPI cards */}

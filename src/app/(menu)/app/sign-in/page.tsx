@@ -57,7 +57,7 @@ function SignInInner() {
             <div className="w-10 h-10 rounded-xl bg-[#E85B1A] flex items-center justify-center">
               <UtensilsCrossed size={20} className="text-white" />
             </div>
-            <span className="text-white font-bold text-xl">eWaiter</span>
+            <span className="text-white font-bold text-xl">Waiterco</span>
           </div>
           <p className="text-white/60 text-sm mt-1">Prihlás sa alebo vytvor účet</p>
         </div>

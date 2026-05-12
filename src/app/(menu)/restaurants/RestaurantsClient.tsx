@@ -259,7 +259,7 @@ export default function RestaurantsClient({
           <div className="w-8 h-8 rounded-lg bg-[#E85B1A] flex items-center justify-center">
             <UtensilsCrossed size={16} className="text-white" />
           </div>
-          <span className="text-white font-bold text-lg tracking-tight">eWaiter</span>
+          <span className="text-white font-bold text-lg tracking-tight">Waiterco</span>
         </div>
 
         {isLoggedIn ? (

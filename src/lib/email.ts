@@ -1,5 +1,5 @@
 const RESEND_API_KEY = process.env.RESEND_API_KEY
-const FROM = "eWaiter <onboarding@resend.dev>"
+const FROM = "Waiterco <onboarding@resend.dev>"
 const ADMIN_EMAIL = "maros.jurkovic27@gmail.com"
 
 export async function sendAdminNotification({

@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "eWaiter – Digitálny čašník",
+  title: "Waiterco – Digitálny čašník",
   description: "QR objednávkový systém pre reštaurácie a bary",
 };
 

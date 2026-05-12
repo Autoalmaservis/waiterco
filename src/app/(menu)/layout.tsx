@@ -1,18 +1,18 @@
 import type { Metadata, Viewport } from "next"
 
 export const metadata: Metadata = {
-  title: "eWaiter – Digitálne menu",
+  title: "Waiterco – Digitálne menu",
   description: "Objednajte si jedlo a sledujte stav objednávky priamo na vašom stole.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "eWaiter",
+    title: "Waiterco",
   },
   formatDetection: { telephone: false },
   openGraph: {
     type: "website",
-    title: "eWaiter",
+    title: "Waiterco",
     description: "Digitálne menu a online objednávanie",
   },
 }

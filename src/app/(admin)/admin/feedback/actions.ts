@@ -52,8 +52,8 @@ export async function createFeedbackTicket(formData: FormData): Promise<{ error:
 
   sendAdminNotification({
     subject: isFeature
-      ? `[eWaiter] Novy napad od ${ctx.org.name}: ${subject}`
-      : `[eWaiter] Nova podpora od ${ctx.org.name}: ${subject}`,
+      ? `[Waiterco] Novy napad od ${ctx.org.name}: ${subject}`
+      : `[Waiterco] Nova podpora od ${ctx.org.name}: ${subject}`,
     html: `
       <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
         <div style="background:${isFeature ? "#7c3aed" : "#E85B1A"};padding:24px;border-radius:12px 12px 0 0">
@@ -79,9 +79,9 @@ export async function createFeedbackTicket(formData: FormData): Promise<{ error:
           <div style="background:white;border:1px solid #e5e7eb;border-radius:8px;padding:16px;margin-bottom:16px">
             <p style="margin:0;font-size:14px;color:#374151;white-space:pre-wrap">${message}</p>
           </div>
-          <a href="https://ewaiter.app/super-admin/${isFeature ? "feature-logs" : "support"}"
+          <a href="https://waiterco.app/super-admin/${isFeature ? "feature-logs" : "support"}"
              style="display:inline-block;background:${isFeature ? "#7c3aed" : "#E85B1A"};color:white;padding:10px 20px;border-radius:8px;text-decoration:none;font-size:14px;font-weight:600">
-            Otvorit v eWaiter
+            Otvorit v Waiterco
           </a>
         </div>
       </div>
@@ -121,7 +121,7 @@ export async function sendFeedbackMessage(ticketId: string, message: string): Pr
 
   const isFeature = (ticket as any).ticket_type === "feature"
   sendAdminNotification({
-    subject: `[eWaiter] Nova sprava od ${ctx.org.name}: ${(ticket as any).subject}`,
+    subject: `[Waiterco] Nova sprava od ${ctx.org.name}: ${(ticket as any).subject}`,
     html: `
       <div style="font-family:sans-serif;max-width:600px;margin:0 auto">
         <div style="background:#1E2D4A;padding:24px;border-radius:12px 12px 0 0">
@@ -132,9 +132,9 @@ export async function sendFeedbackMessage(ticketId: string, message: string): Pr
           <div style="background:white;border:1px solid #e5e7eb;border-radius:8px;padding:16px;margin-bottom:16px">
             <p style="margin:0;font-size:14px;color:#374151;white-space:pre-wrap">${message.trim()}</p>
           </div>
-          <a href="https://ewaiter.app/super-admin/${isFeature ? "feature-logs" : "support"}"
+          <a href="https://waiterco.app/super-admin/${isFeature ? "feature-logs" : "support"}"
              style="display:inline-block;background:#E85B1A;color:white;padding:10px 20px;border-radius:8px;text-decoration:none;font-size:14px;font-weight:600">
-            Otvorit v eWaiter
+            Otvorit v Waiterco
           </a>
         </div>
       </div>

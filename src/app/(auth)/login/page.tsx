@@ -139,7 +139,7 @@ export default function LoginPage() {
         <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4 shadow-lg" style={{ backgroundColor: "#E85B1A" }}>
           <span className="text-white text-3xl font-bold">e</span>
         </div>
-        <h1 className="text-3xl font-bold text-white tracking-tight">eWaiter</h1>
+        <h1 className="text-3xl font-bold text-white tracking-tight">Waiterco</h1>
         <p className="text-white/50 text-sm mt-1">
           {step === null ? "Vyberte sposob prihlasenia" : `Prihlasenie — ${selectedRole?.label}`}
         </p>
@@ -304,7 +304,7 @@ export default function LoginPage() {
         </div>
       )}
 
-      <p className="text-white/20 text-xs mt-10">&copy; {new Date().getFullYear()} eWaiter</p>
+      <p className="text-white/20 text-xs mt-10">&copy; {new Date().getFullYear()} Waiterco</p>
     </div>
   )
 }

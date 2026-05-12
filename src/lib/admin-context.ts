@@ -2,7 +2,7 @@ import { cookies } from "next/headers"
 import { createClient, createAdminClient } from "@/lib/supabase/server"
 import type { VenueType } from "@/types/database"
 
-const PREVIEW_COOKIE = "ewaiter_preview_org"
+const PREVIEW_COOKIE = "waiterco_preview_org"
 
 export type AdminContext = {
   user: { id: string; email: string }

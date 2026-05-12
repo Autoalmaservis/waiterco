@@ -58,7 +58,7 @@ export default function SetPasswordPage() {
             style={{ backgroundColor: "var(--brand-orange)" }}>
             <span className="text-white text-2xl font-bold">e</span>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">eWaiter</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Waiterco</h1>
           <p className="text-gray-500 mt-1">Nastavenie nového hesla</p>
         </div>
 

@@ -177,7 +177,7 @@ export default function ProfileClient({ user, orders }: Props) {
           Odhlásiť sa
         </button>
 
-        <p className="text-center text-xs text-gray-400 pb-4">eWaiter · Zákaznícky účet</p>
+        <p className="text-center text-xs text-gray-400 pb-4">Waiterco · Zákaznícky účet</p>
       </div>
     </div>
   )

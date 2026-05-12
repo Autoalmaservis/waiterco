@@ -26,7 +26,7 @@ export default async function SuperAdminSettingsPage() {
         <div className="bg-white rounded-xl border border-gray-100 p-6">
           <h2 className="font-semibold text-gray-900 mb-4">Platforma</h2>
           <div className="space-y-3">
-            <InfoRow label="Verzia" value="eWaiter 1.0.0" />
+            <InfoRow label="Verzia" value="Waiterco 1.0.0" />
             <InfoRow label="Prostredie" value={process.env.NODE_ENV} />
             <InfoRow label="Supabase URL" value={process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/https?:\/\//, '').split('.')[0] + '.supabase.co'} />
           </div>

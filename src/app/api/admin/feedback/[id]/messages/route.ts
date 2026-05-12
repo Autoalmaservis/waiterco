@@ -29,7 +29,7 @@ export async function GET(
 
   const enriched = (messages ?? []).map((m) => ({
     ...m,
-    sender_name: m.is_staff ? "eWaiter Support" : null,
+    sender_name: m.is_staff ? "Waiterco Support" : null,
   }))
 
   return NextResponse.json({ messages: enriched })

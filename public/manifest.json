@@ -1,6 +1,6 @@
 {
-  "name": "eWaiter – Digitálne menu",
-  "short_name": "eWaiter",
+  "name": "Waiterco – Digitálne menu",
+  "short_name": "Waiterco",
   "description": "Objednajte si jedlo a sledujte stav objednávky priamo na vašom stole.",
   "start_url": "/restaurants",
   "display": "standalone",

@@ -56,7 +56,7 @@ export default function SuperAdminSidebar({ user, badges = {} }: Props) {
           e
         </div>
         <div>
-          <p className="font-bold text-white text-sm leading-none">eWaiter</p>
+          <p className="font-bold text-white text-sm leading-none">Waiterco</p>
           <p className="text-xs mt-0.5" style={{ color: "var(--brand-teal)" }}>Super Admin</p>
         </div>
       </div>

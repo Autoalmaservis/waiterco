@@ -54,7 +54,7 @@ export default async function StaffLayout({ children }: { children: React.ReactN
             e
           </div>
           <div>
-            <p className="text-white font-semibold text-sm leading-tight">eWaiter</p>
+            <p className="text-white font-semibold text-sm leading-tight">Waiterco</p>
             {venueName && <p className="text-blue-300 text-xs leading-tight">{venueName}</p>}
           </div>
         </div>

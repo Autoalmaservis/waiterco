@@ -337,7 +337,7 @@ export default function FeedbackClient({ tickets }: { tickets: AdminTicketRow[] 
                           !m.is_staff ? "text-teal-100" : "text-gray-500"
                         }`}
                       >
-                        {m.is_staff ? "eWaiter Support" : "Vy"}
+                        {m.is_staff ? "Waiterco Support" : "Vy"}
                       </p>
                       <p className="text-sm whitespace-pre-wrap">{m.message}</p>
                       <p

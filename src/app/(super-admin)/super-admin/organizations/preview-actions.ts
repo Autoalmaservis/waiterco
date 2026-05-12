@@ -4,7 +4,7 @@ import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 
-const PREVIEW_COOKIE = "ewaiter_preview_org"
+const PREVIEW_COOKIE = "waiterco_preview_org"
 
 async function verifySuperAdmin() {
   const supabase = await createClient()

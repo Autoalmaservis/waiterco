@@ -47,7 +47,7 @@ export default async function FeedbackPage() {
       <div className="px-8 py-5 border-b border-gray-100 bg-white shrink-0">
         <h1 className="text-2xl font-bold text-gray-900">Podpora & Nápady</h1>
         <p className="text-gray-500 text-sm mt-1">
-          Odošlite požiadavku na podporu alebo zdieľajte nápad s eWaiter tímom
+          Odošlite požiadavku na podporu alebo zdieľajte nápad s Waiterco tímom
         </p>
       </div>
       <div className="flex-1 min-h-0">

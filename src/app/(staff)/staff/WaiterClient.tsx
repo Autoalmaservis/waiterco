@@ -104,6 +104,28 @@ function waiterNextLabel(s: OrderStatus, hasKitchenBarPending: boolean, hasWaite
   return ""
 }
 
+function playBeeps(count = 3) {
+  try {
+    const AudioCtx = (window.AudioContext || (window as any).webkitAudioContext) as typeof AudioContext
+    if (!AudioCtx) return
+    const ctx = new AudioCtx()
+    let t = ctx.currentTime
+    for (let i = 0; i < count; i++) {
+      const osc = ctx.createOscillator()
+      const gain = ctx.createGain()
+      osc.connect(gain)
+      gain.connect(ctx.destination)
+      osc.frequency.value = 880
+      gain.gain.setValueAtTime(0.7, t)
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.18)
+      osc.start(t)
+      osc.stop(t + 0.18)
+      t += 0.30
+    }
+    setTimeout(() => ctx.close(), (count * 0.30 + 0.4) * 1000)
+  } catch {}
+}
+
 export default function WaiterClient({
   venueId, permissions, initialCalls, initialSessions, initialClosedSessions, initialOrders,
   initialItems, initialOrderItemModifiers, initialRecentPayments, initialTables, initialZones,
@@ -265,6 +287,29 @@ export default function WaiterClient({
     }
     prevReadyCountRef.current = readyOrderCount
   }, [readyOrderCount]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // New-order beep notifications
+  const prevOrderIdsRef = useRef<Set<string> | null>(null)
+  const beepRepeatRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const hasPendingRef = useRef(false)
+  useEffect(() => {
+    hasPendingRef.current = initialOrders.some(o => o.status === "pending")
+    const currentIds = new Set(initialOrders.map(o => o.id))
+    if (prevOrderIdsRef.current === null) { prevOrderIdsRef.current = currentIds; return }
+    const hasNew = initialOrders.some(o => !prevOrderIdsRef.current!.has(o.id))
+    prevOrderIdsRef.current = currentIds
+    if (!hasNew) return
+    playBeeps(3)
+    if (beepRepeatRef.current) clearTimeout(beepRepeatRef.current)
+    const scheduleNext = () => {
+      beepRepeatRef.current = setTimeout(() => {
+        if (hasPendingRef.current) { playBeeps(3); scheduleNext() }
+        else beepRepeatRef.current = null
+      }, 30000)
+    }
+    scheduleNext()
+  }, [initialOrders]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => () => { if (beepRepeatRef.current) clearTimeout(beepRepeatRef.current) }, [])
 
   const orderTable = orderTableId ? initialTables.find(t => t.id === orderTableId) ?? null : null
   const orderSession = orderTableId ? initialSessions.find(s => s.table_id === orderTableId) ?? null : null
